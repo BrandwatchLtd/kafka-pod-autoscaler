@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.brandwatch</groupId>
@@ -13,6 +11,18 @@
     <maven.compiler.target>11</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.javaoperatorsdk</groupId>
+        <artifactId>operator-framework-bom</artifactId>
+        <version>4.3.2</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <build>
     <plugins>
@@ -38,22 +48,23 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <version>3.2.1</version>
+        <groupId>com.google.cloud.tools</groupId>
+        <artifactId>jib-maven-plugin</artifactId>
+        <version>3.3.1</version>
+        <configuration>
+          <from>
+            <image>amazoncorretto:11-alpine</image>
+          </from>
+          <to>
+            <image>kafka-pod-autoscaler</image>
+          </to>
+        </configuration>
         <executions>
           <execution>
-            <id>enforce-versions</id>
+            <phase>package</phase>
             <goals>
-              <goal>enforce</goal>
+              <goal>dockerBuild</goal>
             </goals>
-            <configuration>
-              <rules>
-                <requireJavaVersion>
-                  <version>[11,)</version>
-                </requireJavaVersion>
-              </rules>
-            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -77,6 +88,26 @@
               <goal>strip-jar</goal>
             </goals>
             <phase>package</phase>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>3.2.1</version>
+        <executions>
+          <execution>
+            <id>enforce-versions</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireJavaVersion>
+                  <version>[11,)</version>
+                </requireJavaVersion>
+              </rules>
+            </configuration>
           </execution>
         </executions>
       </plugin>
