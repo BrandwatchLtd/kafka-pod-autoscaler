@@ -7,7 +7,7 @@ For example, for a topic with 16 partitions the 'ideal' scaling for the number o
 # The KafkaPodAutoscaler CRD API
 
 ```yaml
-apiVersion: brandwatch.com/v1alpha1
+apiVersion: com.brandwatch/v1alpha1
 kind: KafkaPodAutoscaler
 metadata:
   name: myautoscaler
@@ -19,6 +19,9 @@ spec:
   consumerGroup: <consumer group>>
   topicName: <topic name>
   triggers:
+    - type: static # for testing
+      metadata:
+        replicas: 2
     - type: cpu
       metadata:
         threshold: 
@@ -32,4 +35,3 @@ spec:
       metadata:
         lagThreshold: 
 ```
-

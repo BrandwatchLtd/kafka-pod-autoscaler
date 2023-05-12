@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
@@ -14,8 +13,10 @@ import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
@@ -30,9 +31,13 @@ import com.google.cloud.tools.jib.api.Jib;
 import com.google.cloud.tools.jib.api.RegistryImage;
 
 import brandwatch.com.v1alpha1.KafkaPodAutoscaler;
+import brandwatch.com.v1alpha1.KafkaPodAutoscalerSpec;
+import brandwatch.com.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
+import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
+import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -44,11 +49,10 @@ import com.brandwatch.kafka_pod_autoscaler.testing.FileConsumer;
 @Slf4j
 @Testcontainers
 class KafkaPodAutoscalerIT {
+    private static final String OPERATOR_NAMESPACE = "system-kpa";
     private static final String IMAGE_NAME = System.getProperty("imageName");
     public static final int POD_STARTUP_TIMEOUT = 60;
     private static final int REGISTRY_PORT = 5000;
-
-    public static final String TEST_RESOURCE_NAME = "test1";
 
     @Container
     public static K3sContainer k3s = new K3sContainer(DockerImageName.parse("rancher/k3s:v1.23.17-k3s1"))
@@ -67,9 +71,13 @@ class KafkaPodAutoscalerIT {
             .withPrivilegedMode(true)
             .waitingFor(Wait.forHttp("/v2/_catalog").forStatusCode(200))
             .withLogConsumer(new FileConsumer(Path.of("target/registry.log")));
+    @Container
+    public static final KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.4.0"))
+            .withNetwork(k3s.getNetwork())
+            .withNetworkAliases("kafka");
 
     private String namespace;
-    private KubernetesClient client;
+    private static KubernetesClient client;
 
     @BeforeAll
     static void beforeAll() throws Exception {
@@ -79,16 +87,24 @@ class KafkaPodAutoscalerIT {
                    Containerizer.to(RegistryImage.named("localhost:" + registryContainer.getMappedPort(REGISTRY_PORT) + "/kafka-pod-autoscaler"))
                                 .setAllowInsecureRegistries(true)
            );
-    }
-
-    @BeforeEach
-    void setup() {
-        namespace = "kpa-it-" + UUID.randomUUID();
 
         // Use Config.fromKubeconfig instead of passing the raw string to withConfig,
         // as withConfig uses your local kubeconfig file whether you like it or not
         var config = Config.fromKubeconfig(k3s.getKubeConfigYaml());
         client = new KubernetesClientBuilder().withConfig(config).build();
+
+        client.namespaces()
+              .resource(new NamespaceBuilder().withNewMetadata().withName(OPERATOR_NAMESPACE)
+                                              .endMetadata().build())
+              .create();
+
+        logger.info("Deploying operator");
+        deployOperator();
+    }
+
+    @BeforeEach
+    void setup() {
+        namespace = "kpa-it-" + UUID.randomUUID();
 
         client.namespaces()
               .resource(new NamespaceBuilder().withNewMetadata().withName(namespace)
@@ -110,52 +126,98 @@ class KafkaPodAutoscalerIT {
     }
 
     @Test
-    void canDeployOperator() throws IOException {
-        logger.info("Deploying operator");
-        deployOperator();
+    @Order(1)
+    public void canCreateAutoscaler() {
         logger.info("Applying custom resource");
-        applyCustomResource();
-    }
-
-    private void applyCustomResource() {
         var res = new KafkaPodAutoscaler();
         res.setMetadata(new ObjectMetaBuilder()
-                                .withName(TEST_RESOURCE_NAME)
+                                .withName("test")
                                 .withNamespace(namespace)
                                 .build());
+        var ref = new ScaleTargetRef();
+        ref.setName("does-not-exist");
+        var spec = new KafkaPodAutoscalerSpec();
+        spec.setScaleTargetRef(ref);
+        spec.setTriggers(List.of());
+        res.setSpec(spec);
+
         client.resource(res).create();
+        assertAutoscalerStatus("test", "Deployment not found. Skipping scale");
     }
 
-    private void deployOperator() throws IOException {
-        var process = Runtime.getRuntime().exec("kustomize build src/test/resources/operator");
+    @Test
+    @Order(2)
+    public void canScaleStatically() throws IOException {
+        logger.info("Deploying test workload");
+        applyKustomize("src/test/resources/workload/static");
 
-        try (var inputStream = process.getInputStream()) {
-            applyResources(inputStream);
+        waitForPodsWithLabel("app", "statically-scaled", 1);
+
+        applyKustomize("src/test/resources/autoscaler/static");
+
+        waitForPodsWithLabel("app", "statically-scaled", 2);
+        assertAutoscalerStatus("static-autoscaler", "Deployment being scaled from 1 to 2 replicas");
+    }
+
+    private void waitForPodsWithLabel(String key, String value, int expected) {
+        waitForPodsWithLabel(namespace, key, value, expected);
+    }
+
+    private static void waitForPodsWithLabel(String namespace, String key, String value, int expected) {
+        await().atMost(Duration.ofSeconds(POD_STARTUP_TIMEOUT)).untilAsserted(() -> {
+            var pods = client.pods().inNamespace(namespace).withLabel(key, value).list().getItems();
+            assertThat(pods.size()).isEqualTo(expected);
+
+            var containerStatuses = pods.stream().flatMap(pod -> pod.getStatus().getContainerStatuses().stream()).toList();
+            assertThat(containerStatuses.size()).isEqualTo(expected);
+            assertThat(containerStatuses.stream().allMatch(ContainerStatus::getReady)).isTrue();
+
+            for (Pod item : pods) {
+                client.pods().inNamespace(namespace).withName(item.getMetadata().getName()).watchLog(System.out);
+            }
+        });
+    }
+
+    private void assertAutoscalerStatus(String name, String expectedStatus) {
+        await().atMost(Duration.ofSeconds(POD_STARTUP_TIMEOUT)).untilAsserted(() -> {
+            var autoscaler = client.resources(KafkaPodAutoscaler.class).inNamespace(namespace).withName(name).get();
+
+            assertThat(autoscaler.getStatus()).isNotNull();
+            assertThat(autoscaler.getStatus().getMessage()).isEqualTo(expectedStatus);
+        });
+    }
+
+    private static void deployOperator() throws IOException {
+        applyKustomize("src/test/resources/operator", OPERATOR_NAMESPACE);
+
+        waitForPodsWithLabel(OPERATOR_NAMESPACE, "app", "kafka-pod-autoscaler", 1);
+    }
+
+    void applyKustomize(String path) throws IOException {
+        applyKustomize(path, namespace);
+    }
+
+    static void applyKustomize(String path, String namespace) throws IOException {
+        var process = Runtime.getRuntime().exec("kustomize build " + path);
+
+        try (var yamlStream = process.getInputStream()) {
+            List<HasMetadata> resources = client.load(yamlStream).items();
+            resources.forEach(hm -> {
+                hm.getMetadata().setNamespace(namespace);
+                if (hm.getKind().toLowerCase(Locale.ROOT).equals("clusterrolebinding")) {
+                    var crb = (ClusterRoleBinding) hm;
+                    for (var subject : crb.getSubjects()) {
+                        subject.setNamespace(namespace);
+                    }
+                }
+            });
+            client.resourceList(resources)
+                  .inNamespace(namespace)
+                  .serverSideApply();
         }
         if (process.exitValue() != 0) {
             process.getErrorStream().transferTo(System.out);
             throw new RuntimeException("Kustomize exited with status " + process.exitValue());
         }
-        await().atMost(Duration.ofSeconds(POD_STARTUP_TIMEOUT)).untilAsserted(() -> {
-            var pod = client.pods().inNamespace(namespace).withLabel("app", "kafka-pod-autoscaler").list().getItems().get(0);
-            assertThat(pod.getStatus().getContainerStatuses()).isNotEmpty();
-            assertThat(pod.getStatus().getContainerStatuses().get(0).getReady()).isTrue();
-        });
-    }
-
-    void applyResources(InputStream yamlStream) {
-        List<HasMetadata> resources = client.load(yamlStream).items();
-        resources.forEach(hm -> {
-            hm.getMetadata().setNamespace(namespace);
-            if (hm.getKind().toLowerCase(Locale.ROOT).equals("clusterrolebinding")) {
-                var crb = (ClusterRoleBinding) hm;
-                for (var subject : crb.getSubjects()) {
-                    subject.setNamespace(namespace);
-                }
-            }
-        });
-        client.resourceList(resources)
-              .inNamespace(namespace)
-              .serverSideApply();
     }
 }

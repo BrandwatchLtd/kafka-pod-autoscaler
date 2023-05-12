@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: statically-scaled
+  labels:
+    app: statically-scaled
+spec:
+  selector:
+    matchLabels:
+      app: statically-scaled
+  template:
+    metadata:
+      name: statically-scaled
+      labels:
+        app: statically-scaled
+    spec:
+      containers:
+        - name: statically-scaled
+          image: alpine:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              sleep Infinity
+      restartPolicy: Always

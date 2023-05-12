@@ -74,6 +74,11 @@
       <artifactId>jackson-core</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.fabric8</groupId>
+      <artifactId>generator-annotations</artifactId>
+      <version>${fabric8-client.version}</version>
+    </dependency>
+    <dependency>
       <groupId>io.javaoperatorsdk</groupId>
       <artifactId>operator-framework</artifactId>
     </dependency>
@@ -142,6 +147,11 @@
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>k3s</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>kafka</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

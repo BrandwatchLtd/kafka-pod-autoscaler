@@ -11,15 +11,33 @@ rules:
     verbs:
       - '*'
   - apiGroups:
-      - "sample.javaoperatorsdk"
+      - "com.brandwatch"
     resources:
-      - leaderelections
-      - leaderelections/status
+      - kafkapodautoscalers
+      - kafkapodautoscalers/status
     verbs:
       - '*'
   - apiGroups:
       - "coordination.k8s.io"
     resources:
       - "leases"
+    verbs:
+      - '*'
+  - apiGroups:
+      - '*'
+    resources:
+      - deployments
+      - statefulsets
+      - cronjobs
+      - daemonsets
+    verbs:
+      - '*'
+  - apiGroups:
+      - '*'
+    resources:
+      - deployments/scale
+      - statefulsets/scale
+      - cronjobs/scale
+      - daemonsets/scale
     verbs:
       - '*'

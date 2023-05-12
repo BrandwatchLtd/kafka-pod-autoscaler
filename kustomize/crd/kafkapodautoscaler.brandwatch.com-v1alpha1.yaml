@@ -20,17 +20,25 @@ spec:
     schema:
       openAPIV3Schema:
         type: object
+        required:
+        - spec
         properties:
           spec:
             type: object
+            required:
+              - scaleTargetRef
+              - triggers
             properties:
               scaleTargetRef:
                 type: object
+                required:
+                  - name
                 properties:
-                  kind:
-                    type: string
                   name:
                     type: string
+                  kind:
+                    type: string
+                    default: Deployment
               bootstrapServers:
                 type: string
               consumerGroup:
