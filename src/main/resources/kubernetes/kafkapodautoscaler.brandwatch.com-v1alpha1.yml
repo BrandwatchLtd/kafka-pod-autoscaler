@@ -1,0 +1,61 @@
+# Custom Resource Definition that will be used to generate the Java classes in target/generated-sources/java
+# See https://github.com/fabric8io/kubernetes-client/blob/master/doc/java-generation-from-CRD.md
+# The Java classes will then be used to recreate this CR in target/classes/
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: kafkapodautoscalers.com.brandwatch
+spec:
+  group: brandwatch.com
+  names:
+    kind: KafkaPodAutoscaler
+    singular: kafkapodautoscaler
+    plural: kafkapodautoscalers
+    shortNames:
+    - kpa
+    - kpas
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              scaleTargetRef:
+                type: object
+                properties:
+                  kind:
+                    type: string
+                  name:
+                    type: string
+              bootstrapServers:
+                type: string
+              consumerGroup:
+                type: string
+              topicName:
+                type: string
+              triggers:
+                type: array
+                nullable: false
+                default: []
+                items:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                    metadata:
+                      type: object
+                      additionalProperties:
+                        type: string
+          status:
+            type: object
+            properties:
+              message:
+                type: string
+    served: true
+    storage: true
+    subresources:
+      status: {}
