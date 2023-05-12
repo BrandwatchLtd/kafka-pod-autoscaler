@@ -1,0 +1,12 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: operator-admin
+subjects:
+  - kind: ServiceAccount
+    name: kafka-pod-autoscaler
+roleRef:
+  kind: ClusterRole
+  name: kafka-pod-autoscaler
+  apiGroup: ""

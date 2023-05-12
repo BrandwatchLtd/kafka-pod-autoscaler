@@ -1,0 +1,19 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-pod-autoscaler
+spec:
+  selector:
+    matchLabels:
+      app: kafka-pod-autoscaler
+  template:
+    metadata:
+      labels:
+        app: kafka-pod-autoscaler
+    spec:
+      serviceAccountName: kafka-pod-autoscaler
+      containers:
+        - name: operator
+          image: kafka-pod-autoscaler
+          imagePullPolicy: Never

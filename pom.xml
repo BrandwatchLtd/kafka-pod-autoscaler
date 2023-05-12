@@ -195,7 +195,7 @@
         <artifactId>java-generator-maven-plugin</artifactId>
         <version>${fabric8-client.version}</version>
         <configuration>
-          <source>src/main/resources/kubernetes</source>
+          <source>kustomize/crd</source>
         </configuration>
         <executions>
           <execution>
