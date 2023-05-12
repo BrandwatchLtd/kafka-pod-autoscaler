@@ -16,4 +16,4 @@ spec:
       containers:
         - name: operator
           image: kafka-pod-autoscaler
-          imagePullPolicy: Never
+          imagePullPolicy: IfNotPresent

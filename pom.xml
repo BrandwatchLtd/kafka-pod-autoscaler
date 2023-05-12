@@ -12,6 +12,7 @@
     <maven.compiler.source>${java.version}</maven.compiler.source>
     <maven.compiler.target>${java.version}</maven.compiler.target>
 
+    <imageName>kafka-pod-autoscaler</imageName>
     <skipDockerBuild>false</skipDockerBuild>
     <skipIntegrationTests>false</skipIntegrationTests>
 
@@ -108,14 +109,20 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- This is needed to satisfy the fabric8 client when connecting to k3s:
-         https://javaoperatorsdk.io/docs/faq#q-how-to-fix-sunsecurityprovidercertpathsuncertpathbuilderexception-on-rancher-desktop-and-k3dk3s-kubernetes
-    -->
+    <dependency>
+      <groupId>com.google.cloud.tools</groupId>
+      <artifactId>jib-core</artifactId>
+      <version>0.23.0</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>io.javaoperatorsdk</groupId>
       <artifactId>operator-framework-junit-5</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- This is needed to satisfy the fabric8 client when connecting to k3s:
+         https://javaoperatorsdk.io/docs/faq#q-how-to-fix-sunsecurityprovidercertpathsuncertpathbuilderexception-on-rancher-desktop-and-k3dk3s-kubernetes
+    -->
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-jdk15on</artifactId>
@@ -177,7 +184,7 @@
             <image>amazoncorretto:${java.version}-alpine</image>
           </from>
           <to>
-            <image>kafka-pod-autoscaler</image>
+            <image>${imageName}</image>
           </to>
         </configuration>
         <executions>
@@ -272,6 +279,9 @@
             <include>**/*IT*.java</include>
           </includes>
           <skip>${skipIntegrationTests}</skip>
+          <systemPropertyVariables>
+            <imageName>${imageName}</imageName>
+          </systemPropertyVariables>
         </configuration>
         <executions>
           <execution>
