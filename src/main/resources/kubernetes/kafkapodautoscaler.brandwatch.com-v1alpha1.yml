@@ -6,7 +6,7 @@ kind: CustomResourceDefinition
 metadata:
   name: kafkapodautoscalers.com.brandwatch
 spec:
-  group: brandwatch.com
+  group: com.brandwatch
   names:
     kind: KafkaPodAutoscaler
     singular: kafkapodautoscaler

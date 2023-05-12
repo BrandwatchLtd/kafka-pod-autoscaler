@@ -12,6 +12,9 @@
     <maven.compiler.source>${java.version}</maven.compiler.source>
     <maven.compiler.target>${java.version}</maven.compiler.target>
 
+    <skipDockerBuild>false</skipDockerBuild>
+    <skipIntegrationTests>false</skipIntegrationTests>
+
     <fabric8-client.version>6.6.1</fabric8-client.version>
     <lombok.version>1.18.26</lombok.version>
     <slf4j.version>2.0.7</slf4j.version>
@@ -19,6 +22,13 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>2.14.2</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>io.javaoperatorsdk</groupId>
         <artifactId>operator-framework-bom</artifactId>
@@ -30,6 +40,13 @@
         <groupId>org.junit</groupId>
         <artifactId>junit-bom</artifactId>
         <version>5.9.2</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-bom</artifactId>
+        <version>1.18.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -46,6 +63,14 @@
       <groupId>co.elastic.logging</groupId>
       <artifactId>logback-ecs-encoder</artifactId>
       <version>1.5.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
     </dependency>
     <dependency>
       <groupId>io.javaoperatorsdk</groupId>
@@ -83,14 +108,38 @@
       <scope>provided</scope>
     </dependency>
 
+    <!-- This is needed to satisfy the fabric8 client when connecting to k3s:
+         https://javaoperatorsdk.io/docs/faq#q-how-to-fix-sunsecurityprovidercertpathsuncertpathbuilderexception-on-rancher-desktop-and-k3dk3s-kubernetes
+    -->
     <dependency>
       <groupId>io.javaoperatorsdk</groupId>
       <artifactId>operator-framework-junit-5</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcpkix-jdk15on</artifactId>
+      <version>1.70</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-params</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>k3s</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -123,6 +172,7 @@
         <artifactId>jib-maven-plugin</artifactId>
         <version>3.3.1</version>
         <configuration>
+          <skip>${skipDockerBuild}</skip>
           <from>
             <image>amazoncorretto:${java.version}-alpine</image>
           </from>
@@ -210,6 +260,27 @@
                 </requireJavaVersion>
               </rules>
             </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <version>3.0.0</version>
+        <configuration>
+          <includes>
+            <include>**/*IT*.java</include>
+          </includes>
+          <skip>${skipIntegrationTests}</skip>
+        </configuration>
+        <executions>
+          <execution>
+            <id>run-integration-tests</id>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+            <phase>integration-test</phase>
           </execution>
         </executions>
       </plugin>

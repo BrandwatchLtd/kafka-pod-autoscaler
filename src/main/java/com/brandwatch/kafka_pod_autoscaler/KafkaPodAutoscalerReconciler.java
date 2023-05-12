@@ -3,6 +3,9 @@ package com.brandwatch.kafka_pod_autoscaler;
 import java.time.Duration;
 import java.util.Map;
 
+import brandwatch.com.v1alpha1.KafkaPodAutoscaler;
+import brandwatch.com.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
+import brandwatch.com.v1alpha1.kafkapodautoscalerspec.Triggers;
 import io.fabric8.kubernetes.api.model.GenericKubernetesResource;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.Resource;
@@ -12,10 +15,6 @@ import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import lombok.extern.slf4j.Slf4j;
-
-import com.brandwatch.v1alpha1.KafkaPodAutoscaler;
-import com.brandwatch.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
-import com.brandwatch.v1alpha1.kafkapodautoscalerspec.Triggers;
 
 @Slf4j
 @ControllerConfiguration
