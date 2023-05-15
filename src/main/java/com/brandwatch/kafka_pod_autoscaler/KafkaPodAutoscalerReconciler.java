@@ -46,6 +46,12 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
                                 .rescheduleAfter(Duration.ofSeconds(10));
         }
 
+        if (resource.getReplicaCount() == 0) {
+            statusLogger.log(targetKind + " has been scaled to zero. Skipping scale");
+            return UpdateControl.patchStatus(kafkaPodAutoscaler)
+                                .rescheduleAfter(Duration.ofSeconds(10));
+        }
+
         var currentReplicaCount = resource.getReplicaCount();
         var idealReplicaCount = kafkaPodAutoscaler.getSpec().getTriggers().stream()
                                                   .mapToInt(trigger -> calculateTriggerResult(trigger).recommendedReplicas())

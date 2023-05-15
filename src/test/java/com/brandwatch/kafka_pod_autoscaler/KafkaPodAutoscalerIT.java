@@ -171,6 +171,23 @@ class KafkaPodAutoscalerIT {
         assertAutoscalerStatus("static-autoscaler", "Deployment being scaled from 1 to 2 replicas");
     }
 
+    @Test
+    @Order(4)
+    public void doesNotScaleIfReplicasSetToZero() throws IOException {
+        logger.info("Deploying test workload");
+        applyKustomize("src/test/resources/workload/static");
+
+        waitForPodsWithLabel("app", "statically-scaled", 1);
+
+        client.apps().deployments().inNamespace(namespace).withName("statically-scaled").scale(0);
+
+        applyKustomize("src/test/resources/autoscaler/static");
+
+        assertAutoscalerStatus("static-autoscaler", "Deployment has been scaled to zero. Skipping scale");
+        assertThat(client.apps().deployments().inNamespace(namespace).withName("statically-scaled").get().getSpec().getReplicas())
+                .isEqualTo(0);
+    }
+
     private void waitForPodsWithLabel(String key, String value, int expected) {
         waitForPodsWithLabel(namespace, key, value, expected);
     }
