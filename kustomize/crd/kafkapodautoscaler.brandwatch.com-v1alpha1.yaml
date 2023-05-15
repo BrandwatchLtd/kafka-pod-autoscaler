@@ -36,6 +36,8 @@ spec:
                 properties:
                   name:
                     type: string
+                  apiVersion:
+                    type: string
                   kind:
                     type: string
                     default: Deployment

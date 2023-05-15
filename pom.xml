@@ -16,6 +16,7 @@
     <skipDockerBuild>false</skipDockerBuild>
     <skipIntegrationTests>false</skipIntegrationTests>
 
+    <auto-service.version>1.0.1</auto-service.version>
     <fabric8-client.version>6.6.1</fabric8-client.version>
     <lombok.version>1.18.26</lombok.version>
     <slf4j.version>2.0.7</slf4j.version>
@@ -72,6 +73,11 @@
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.auto.service</groupId>
+      <artifactId>auto-service-annotations</artifactId>
+      <version>${auto-service.version}</version>
     </dependency>
     <dependency>
       <groupId>io.fabric8</groupId>
@@ -196,6 +202,23 @@
           <to>
             <image>${imageName}</image>
           </to>
+          <extraDirectories>
+            <paths>
+              <path>
+                <from>${project.basedir}/docker</from>
+                <into>/docker</into>
+              </path>
+            </paths>
+            <permissions>
+              <permission>
+                <file>/docker/entrypoint.sh</file>
+                <mode>555</mode>
+              </permission>
+            </permissions>
+          </extraDirectories>
+          <container>
+            <entrypoint>/docker/entrypoint.sh</entrypoint>
+          </container>
         </configuration>
         <executions>
           <execution>
@@ -256,6 +279,11 @@
               <groupId>org.projectlombok</groupId>
               <artifactId>lombok</artifactId>
               <version>${lombok.version}</version>
+            </path>
+            <path>
+              <groupId>com.google.auto.service</groupId>
+              <artifactId>auto-service</artifactId>
+              <version>${auto-service.version}</version>
             </path>
           </annotationProcessorPaths>
         </configuration>

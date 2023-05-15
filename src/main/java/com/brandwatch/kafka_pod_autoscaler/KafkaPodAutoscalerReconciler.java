@@ -1,24 +1,21 @@
 package com.brandwatch.kafka_pod_autoscaler;
 
-import java.net.HttpURLConnection;
 import java.time.Duration;
-import java.util.Map;
 import java.util.OptionalInt;
+import java.util.ServiceLoader;
 
 import brandwatch.com.v1alpha1.KafkaPodAutoscaler;
 import brandwatch.com.v1alpha1.KafkaPodAutoscalerStatus;
 import brandwatch.com.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
 import brandwatch.com.v1alpha1.kafkapodautoscalerspec.Triggers;
-import io.fabric8.kubernetes.api.model.GenericKubernetesResource;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.client.dsl.Resource;
-import io.fabric8.kubernetes.client.dsl.base.ResourceDefinitionContext;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import lombok.extern.slf4j.Slf4j;
+
+import com.brandwatch.kafka_pod_autoscaler.scaledresources.GenericScaledResourceFactory;
 
 @Slf4j
 @ControllerConfiguration
@@ -33,23 +30,23 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
     public UpdateControl<KafkaPodAutoscaler> reconcile(KafkaPodAutoscaler kafkaPodAutoscaler, Context<KafkaPodAutoscaler> context) {
         var targetName = kafkaPodAutoscaler.getSpec().getScaleTargetRef().getName();
         var targetKind = kafkaPodAutoscaler.getSpec().getScaleTargetRef().getKind();
-        var resource = getGenericResource(context.getClient(), kafkaPodAutoscaler.getMetadata().getNamespace(),
-                                          kafkaPodAutoscaler.getSpec().getScaleTargetRef());
+        var statusLogger = new StatusLogger(kafkaPodAutoscaler);
+        var resource = getScaledResource(context.getClient(), kafkaPodAutoscaler.getMetadata().getNamespace(),
+                                         kafkaPodAutoscaler.getSpec().getScaleTargetRef());
 
-        kafkaPodAutoscaler.setStatus(new KafkaPodAutoscalerStatus());
-        if (isMissing(resource)) {
-            kafkaPodAutoscaler.getStatus().setMessage(targetKind + " not found. Skipping scale");
+        if (resource == null) {
+            statusLogger.log(targetKind + " not found. Skipping scale");
             return UpdateControl.patchStatus(kafkaPodAutoscaler)
                                 .rescheduleAfter(Duration.ofSeconds(10));
         }
 
         if (!resource.isReady()) {
-            kafkaPodAutoscaler.getStatus().setMessage(targetKind + " is not ready. Skipping scale");
+            statusLogger.log(targetKind + " is not ready. Skipping scale");
             return UpdateControl.patchStatus(kafkaPodAutoscaler)
                                 .rescheduleAfter(Duration.ofSeconds(10));
         }
 
-        var currentReplicaCount = getReplicaCount(resource);
+        var currentReplicaCount = resource.getReplicaCount();
         var idealReplicaCount = kafkaPodAutoscaler.getSpec().getTriggers().stream()
                                                   .mapToInt(trigger -> calculateTriggerResult(trigger).recommendedReplicas())
                                                   .max().orElse(1);
@@ -58,15 +55,15 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
 
         if (currentReplicaCount != bestReplicaCount) {
             if (doScale) {
-                resource.scale(bestReplicaCount, false);
+                resource.scale(bestReplicaCount);
             } else {
                 logger.info("Scaling deployment {} to {} replicas", targetName, bestReplicaCount);
             }
             // TODO: Expand reason, statuses for each trigger?
-            kafkaPodAutoscaler.getStatus().setMessage(targetKind + " being scaled from " + currentReplicaCount
-                                                              + " to " + bestReplicaCount + " replicas");
+            statusLogger.log(targetKind + " being scaled from " + currentReplicaCount
+                                     + " to " + bestReplicaCount + " replicas");
         } else {
-            kafkaPodAutoscaler.getStatus().setMessage(targetKind + " is correctly scaled to " + bestReplicaCount + "replicas");
+            statusLogger.log(targetKind + " is correctly scaled to " + bestReplicaCount + "replicas");
         }
 
         return UpdateControl.patchStatus(kafkaPodAutoscaler)
@@ -74,41 +71,40 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
                             .rescheduleAfter(Duration.ofSeconds(10));
     }
 
-    private boolean isMissing(Resource<GenericKubernetesResource> resource) {
-        try {
-            return resource.get() == null;
-        } catch (KubernetesClientException e) {
-            if (e.getCode() == HttpURLConnection.HTTP_NOT_FOUND) {
-                return false;
-            }
-            throw e;
+    private ScaledResource getScaledResource(KubernetesClient client, String namespace, ScaleTargetRef scaleTargetRef) {
+        var factories = ServiceLoader.load(ScaledResourceFactory.class);
+
+        logger.debug("Attempting to find resource to scale: {}", refToString(scaleTargetRef));
+        return factories.stream()
+                .map(ServiceLoader.Provider::get)
+                .filter(factory -> factory.supports(client, namespace, scaleTargetRef))
+                .peek(factory -> logger.info("Found factory that supports {}: {} (only the first will be used)",
+                                             refToString(scaleTargetRef), factory))
+                .findFirst()
+                .orElseGet(GenericScaledResourceFactory::new)
+                .create(client, namespace, scaleTargetRef);
+    }
+
+    private String refToString(ScaleTargetRef scaleTargetRef) {
+        if (scaleTargetRef.getApiVersion() == null) {
+            return scaleTargetRef.getKind() + "/" + scaleTargetRef.getName();
         }
-    }
-
-    private Resource<GenericKubernetesResource> getGenericResource(KubernetesClient client, String namespace, ScaleTargetRef scaleTargetRef) {
-        return client.genericKubernetesResources(new ResourceDefinitionContext.Builder()
-                                                         .withKind(scaleTargetRef.getKind())
-                                                         .build())
-                     .inNamespace(namespace)
-                     .withName(scaleTargetRef.getName());
-    }
-
-    private int getReplicaCount(Resource<GenericKubernetesResource> resource) {
-        return (int) ((Map) resource.get().getAdditionalProperties().get("spec")).get("replicaCount");
+        return scaleTargetRef.getApiVersion() + "." + scaleTargetRef.getKind() + "/" + scaleTargetRef.getName();
     }
 
     private OptionalInt getPartitionCount(KafkaPodAutoscaler kafkaPodAutoscaler) {
-        if (kafkaPodAutoscaler.getSpec().getScaleTargetRef() == null) {
+        var consumerGroup = kafkaPodAutoscaler.getSpec().getConsumerGroup();
+        if (consumerGroup == null) {
             return OptionalInt.empty();
         }
-        throw new UnsupportedOperationException("TODO");
+        throw new UnsupportedOperationException("TODO (consumerGroup=" + consumerGroup + ")");
     }
 
     private TriggerResult calculateTriggerResult(Triggers trigger) {
         if (trigger.getType().equals("static")) {
             return new TriggerResult(trigger, Integer.parseInt(trigger.getMetadata().get("replicas")));
         }
-        throw new UnsupportedOperationException("TODO");
+        throw new UnsupportedOperationException("Unsupported trigger \"" + trigger.getType() + "\"");
     }
 
     private int fitReplicaCount(int idealReplicaCount, int partitionCount) {
@@ -125,5 +121,21 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
     }
 
     record TriggerResult(Triggers trigger, int recommendedReplicas) {
+    }
+
+    private static class StatusLogger {
+        private final String name;
+        private final KafkaPodAutoscalerStatus status;
+
+        public StatusLogger(KafkaPodAutoscaler kafkaPodAutoscaler) {
+            name = kafkaPodAutoscaler.getMetadata().getName();
+            status = new KafkaPodAutoscalerStatus();
+            kafkaPodAutoscaler.setStatus(status);
+        }
+
+        public void log(String message) {
+            logger.info("Setting status on autoscaler {} to: {}", name, message);
+            status.setMessage(message);
+        }
     }
 }

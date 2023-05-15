@@ -8,3 +8,17 @@ images:
   - name: kafka-pod-autoscaler
     newName: registry:5000/kafka-pod-autoscaler
     newTag: latest
+
+patches:
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env
+        value:          
+          env:
+            - name: JAVA_OPTS
+              value: -Dlog.level=DEBUG
+            - name: JAVA_OPTS_DEBUG
+              value: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+    target:
+      kind: Deployment
+      labelSelector: "app=kafka-pod-autoscaler"
