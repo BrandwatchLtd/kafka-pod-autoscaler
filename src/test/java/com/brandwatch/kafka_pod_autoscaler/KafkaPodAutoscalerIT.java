@@ -6,9 +6,12 @@ import static org.awaitility.Awaitility.await;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -42,6 +45,7 @@ import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import io.fabric8.kubernetes.client.dsl.LogWatch;
 import lombok.extern.slf4j.Slf4j;
 
 import com.brandwatch.kafka_pod_autoscaler.testing.FileConsumer;
@@ -53,6 +57,7 @@ class KafkaPodAutoscalerIT {
     private static final String IMAGE_NAME = System.getProperty("imageName");
     public static final int POD_STARTUP_TIMEOUT = 60;
     private static final int REGISTRY_PORT = 5000;
+    private static final Map<String, Map<String, LogWatch>> watchLogs = new ConcurrentHashMap<>();
 
     @Container
     public static K3sContainer k3s = new K3sContainer(DockerImageName.parse("rancher/k3s:v1.23.17-k3s1"))
@@ -118,6 +123,13 @@ class KafkaPodAutoscalerIT {
             // setup failed
             return;
         }
+        if (watchLogs.containsKey(namespace)) {
+            // Cancel any watches for pods in this namespace
+            for (var logWatch : watchLogs.get(namespace).values()) {
+                logWatch.close();
+            }
+        }
+        // Clean up the namespace
         client.namespaces().resource(new NamespaceBuilder().withNewMetadata().withName(namespace)
                                                            .endMetadata().build()).delete();
         await()
@@ -173,7 +185,11 @@ class KafkaPodAutoscalerIT {
             assertThat(containerStatuses.stream().allMatch(ContainerStatus::getReady)).isTrue();
 
             for (Pod item : pods) {
-                client.pods().inNamespace(namespace).withName(item.getMetadata().getName()).watchLog(System.out);
+                var podName = item.getMetadata().getName();
+                watchLogs.computeIfAbsent(namespace, n -> new HashMap<>())
+                         .computeIfAbsent(podName, p -> client.pods().inNamespace(namespace)
+                                                              .withName(p)
+                                                              .watchLog(System.out));
             }
         });
     }
