@@ -154,6 +154,8 @@ class KafkaPodAutoscalerIT {
                                 .withNamespace(namespace)
                                 .build());
         var ref = new ScaleTargetRef();
+        ref.setApiVersion("apps/v1");
+        ref.setKind("Deployment");
         ref.setName("does-not-exist");
         var spec = new KafkaPodAutoscalerSpec();
         spec.setScaleTargetRef(ref);

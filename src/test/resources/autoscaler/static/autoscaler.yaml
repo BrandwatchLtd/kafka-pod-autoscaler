@@ -4,6 +4,7 @@ metadata:
   name: static-autoscaler
 spec:
   scaleTargetRef:
+    apiVersion: apps/v1
     kind: Deployment
     name: statically-scaled
 #  bootstrapServers: kafka:9092

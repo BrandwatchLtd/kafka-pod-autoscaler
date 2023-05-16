@@ -13,6 +13,7 @@ metadata:
   name: myautoscaler
 spec:
   scaleTargetRef:
+    apiVersion: apps/v1
     kind: Deployment
     name: mydeployment
   bootstrapServers: <server list>

@@ -18,8 +18,8 @@ public class GenericScaledResource implements ScaledResource {
 
     @Override
     public boolean isReady() {
-        logger.debug("Resource ready={}: {}", resource.isReady(), resource);
-        return resource.isReady();
+        // fabric8 Readiness class reports true for these always anyway
+        return true;
     }
 
     @Override

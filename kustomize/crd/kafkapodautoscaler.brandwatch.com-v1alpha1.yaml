@@ -33,6 +33,8 @@ spec:
                 type: object
                 required:
                   - name
+                  - apiVersion
+                  - kind
                 properties:
                   name:
                     type: string

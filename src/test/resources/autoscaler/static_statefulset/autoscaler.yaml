@@ -4,8 +4,9 @@ metadata:
   name: static-autoscaler-statefulset
 spec:
   scaleTargetRef:
+    apiVersion: apps/v1
     kind: StatefulSet
-    name: statically-scaled
+    name: statically-scaled-statefulset
 #  bootstrapServers: kafka:9092
 #  consumerGroup: <consumer group>>
 #  topicName: <topic name>
