@@ -10,6 +10,7 @@ exec java \
       -XX:OnOutOfMemoryError='kill -9 %p' \
       -Djava.net.preferIPv4Stack=true \
       ${JAVA_OPTS:-} \
+      ${JAVA_OPTS_DEBUG:-} \
       ${JAVA_OPTS_MEM:-} \
       ${JAVA_OPTS_GC:-} \
       ${JAVA_OPTS_OTHER:-} \

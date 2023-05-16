@@ -2,6 +2,8 @@ package com.brandwatch.kafka_pod_autoscaler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.testcontainers.k3s.K3sContainer.KUBE_SECURE_PORT;
+import static org.testcontainers.k3s.K3sContainer.RANCHER_WEBHOOK_PORT;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -66,6 +68,11 @@ class KafkaPodAutoscalerIT {
                     MountableFile.forClasspathResource("/k3s-registries.yaml"),
                     "/etc/rancher/k3s/registries.yaml"
             )
+            // Expose port 5005 for debugging the operator.  To use:
+            // 1. `docker ps` -> note forwarded_port for 5005, and container_name
+            // 2. `docker exec -it <container_name> kubectl -n system-kpa port-forward --address 0.0.0.0 deployment/kafka-pod-autoscaler 5005:5005`
+            // 3. Connect your debugger to localhost:<forwarded_port>
+            .withExposedPorts(KUBE_SECURE_PORT, RANCHER_WEBHOOK_PORT, 5005)
             .withLogConsumer(new FileConsumer(Path.of("target/k3s.log")));
     @Container
     public static final GenericContainer<?> registryContainer = new GenericContainer<>(DockerImageName.parse("registry:2.7.1"))
@@ -158,7 +165,6 @@ class KafkaPodAutoscalerIT {
     }
 
     @Test
-    @Order(2)
     public void canScaleStatically() throws IOException {
         logger.info("Deploying test workload");
         applyKustomize("src/test/resources/workload/static");
@@ -172,7 +178,6 @@ class KafkaPodAutoscalerIT {
     }
 
     @Test
-    @Order(2)
     public void canScaleStatically_statefulset() throws IOException {
         logger.info("Deploying test workload");
         applyKustomize("src/test/resources/workload/static_statefulset");
@@ -186,7 +191,6 @@ class KafkaPodAutoscalerIT {
     }
 
     @Test
-    @Order(4)
     public void doesNotScaleIfReplicasSetToZero() throws IOException {
         logger.info("Deploying test workload");
         applyKustomize("src/test/resources/workload/static");
