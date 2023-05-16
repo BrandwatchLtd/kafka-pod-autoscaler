@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: statically-scaled-statefulset
+  labels:
+    app: statically-scaled-statefulset
+spec:
+  replicas: 1
+  serviceName: statically-scaled-statefulset
+  selector:
+    matchLabels:
+      app: statically-scaled-statefulset
+  template:
+    metadata:
+      name: statically-scaled-statefulset
+      labels:
+        app: statically-scaled-statefulset
+    spec:
+      containers:
+        - name: statically-scaled-statefulset
+          image: alpine:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              sleep Infinity
+      restartPolicy: Always

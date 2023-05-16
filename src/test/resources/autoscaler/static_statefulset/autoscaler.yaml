@@ -1,0 +1,15 @@
+apiVersion: com.brandwatch/v1alpha1
+kind: KafkaPodAutoscaler
+metadata:
+  name: static-autoscaler-statefulset
+spec:
+  scaleTargetRef:
+    kind: StatefulSet
+    name: statically-scaled
+#  bootstrapServers: kafka:9092
+#  consumerGroup: <consumer group>>
+#  topicName: <topic name>
+  triggers:
+    - type: static # for testing
+      metadata:
+        replicas: '2'

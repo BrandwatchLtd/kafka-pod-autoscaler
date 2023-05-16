@@ -23,7 +23,11 @@ public class GenericScaledResourceFactory implements ScaledResourceFactory {
 
     @Override
     public ScaledResource create(KubernetesClient client, String namespace, ScaleTargetRef scaleTargetRef) {
-        return new GenericScaledResource(getApiResource(client, namespace, scaleTargetRef));
+        var resource = getApiResource(client, namespace, scaleTargetRef);
+        if (resource.get() == null) {
+            return null;
+        }
+        return new GenericScaledResource(resource);
     }
 
     private Resource<GenericKubernetesResource> getApiResource(KubernetesClient client, String namespace, ScaleTargetRef scaleTargetRef) {

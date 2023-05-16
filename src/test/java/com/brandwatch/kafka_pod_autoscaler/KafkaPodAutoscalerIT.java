@@ -172,6 +172,20 @@ class KafkaPodAutoscalerIT {
     }
 
     @Test
+    @Order(2)
+    public void canScaleStatically_statefulset() throws IOException {
+        logger.info("Deploying test workload");
+        applyKustomize("src/test/resources/workload/static_statefulset");
+
+        waitForPodsWithLabel("app", "statically-scaled-statefulset", 1);
+
+        applyKustomize("src/test/resources/autoscaler/static_statefulset");
+
+        waitForPodsWithLabel("app", "statically-scaled-statefulset", 2);
+        assertAutoscalerStatus("static-autoscaler-statefulset", "StatefulSet being scaled from 1 to 2 replicas");
+    }
+
+    @Test
     @Order(4)
     public void doesNotScaleIfReplicasSetToZero() throws IOException {
         logger.info("Deploying test workload");
