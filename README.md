@@ -16,23 +16,32 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: mydeployment
-  bootstrapServers: <server list>
-  consumerGroup: <consumer group>>
-  topicName: <topic name>
+  replicaConstraints:
+    # Any of (all apply their constraints)
+    - type: minMax
+      metadata:
+        minReplicas: '1'
+        maxReplicas: '8'
+    - type: kafkaPartitionFit
+      metadata:
+        bootstrapServers: <server list>
+        consumerGroup: <consumer group>>
+        topicName: <topic name>
   triggers:
+    # Any of (max taken)
     - type: static # for testing
       metadata:
-        replicas: 2
+        replicas: '2'
     - type: cpu
       metadata:
-        threshold: 
+        threshold: '50%'
     - type: prometheus
       metadata:
-        serverAddress: 
-        query: 
+        serverAddress: addr 
+        query: 'query'
         type: [Average/Max]
-        threshold: 
+        threshold: '100'
     - type: kafka
       metadata:
-        lagThreshold: 
+        lagThreshold: '10000'
 ```

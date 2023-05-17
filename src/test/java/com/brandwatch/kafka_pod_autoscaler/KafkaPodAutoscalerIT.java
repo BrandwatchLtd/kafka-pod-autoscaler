@@ -159,6 +159,7 @@ class KafkaPodAutoscalerIT {
         ref.setName("does-not-exist");
         var spec = new KafkaPodAutoscalerSpec();
         spec.setScaleTargetRef(ref);
+        spec.setReplicaConstraints(List.of());
         spec.setTriggers(List.of());
         res.setSpec(spec);
 
