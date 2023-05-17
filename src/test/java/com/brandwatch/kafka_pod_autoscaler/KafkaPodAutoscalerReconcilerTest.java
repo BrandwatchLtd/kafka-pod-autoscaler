@@ -5,6 +5,9 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+import java.util.Map;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import brandwatch.com.v1alpha1.KafkaPodAutoscaler;
 import brandwatch.com.v1alpha1.KafkaPodAutoscalerSpec;
 import brandwatch.com.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
+import brandwatch.com.v1alpha1.kafkapodautoscalerspec.Triggers;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentList;
@@ -52,6 +56,8 @@ public class KafkaPodAutoscalerReconcilerTest {
         when(namespaceOp.withName(DEPLOYMENT_NAME)).thenReturn(deploymentResource);
         lenient().when(deploymentResource.get()).thenReturn(deployment);
         lenient().when(deploymentResource.isReady()).thenReturn(true);
+
+        lenient().when(deployment.getSpec().getReplicas()).thenReturn(1);
 
         var metadata = new ObjectMeta();
         metadata.setNamespace(NAMESPACE);
@@ -103,5 +109,20 @@ public class KafkaPodAutoscalerReconcilerTest {
 
         assertThat(updateControl.getResource().getStatus().getMessage())
                 .isEqualTo("Deployment being scaled from 3 to 1 replicas");
+    }
+
+    @Test
+    public void canScale_withNoKafkaConfig_staticTriggers() {
+        var staticTrigger = new Triggers();
+        staticTrigger.setType("static");
+        staticTrigger.setMetadata(Map.of("replicas", "3"));
+        kpa.getSpec().setTriggers(List.of(
+                staticTrigger
+        ));
+
+        var updateControl = reconciler.reconcile(kpa, mockContext);
+
+        assertThat(updateControl.getResource().getStatus().getMessage())
+                .isEqualTo("Deployment being scaled from 1 to 3 replicas");
     }
 }
