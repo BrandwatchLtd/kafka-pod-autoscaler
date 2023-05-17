@@ -45,8 +45,6 @@ spec:
                     default: Deployment
               bootstrapServers:
                 type: string
-              consumerGroup:
-                type: string
               topicName:
                 type: string
               triggers:

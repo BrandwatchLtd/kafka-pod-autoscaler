@@ -17,7 +17,6 @@ spec:
     kind: Deployment
     name: mydeployment
   bootstrapServers: <server list>
-  consumerGroup: <consumer group>>
   topicName: <topic name>
   triggers:
     - type: static # for testing

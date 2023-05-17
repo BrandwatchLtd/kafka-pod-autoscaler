@@ -15,7 +15,7 @@ public class Main {
         var client = new KubernetesClientBuilder().build();
         Operator operator = new Operator(client, c -> c.withLeaderElectionConfiguration(leaderElectionConfiguration));
 
-        operator.register(new KafkaPodAutoscalerReconciler(true));
+        operator.register(new KafkaPodAutoscalerReconciler(true, new PartitionCountFetcher()));
         operator.start();
     }
 }

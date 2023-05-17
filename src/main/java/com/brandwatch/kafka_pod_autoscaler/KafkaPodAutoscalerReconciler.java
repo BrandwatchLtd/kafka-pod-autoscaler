@@ -21,9 +21,11 @@ import com.brandwatch.kafka_pod_autoscaler.scaledresources.GenericScaledResource
 @ControllerConfiguration
 public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscaler> {
     private final boolean doScale;
+    private final PartitionCountFetcher partitionCountFetcher;
 
-    public KafkaPodAutoscalerReconciler(boolean doScale) {
+    public KafkaPodAutoscalerReconciler(boolean doScale, PartitionCountFetcher partitionCountFetcher) {
         this.doScale = doScale;
+        this.partitionCountFetcher = partitionCountFetcher;
     }
 
     @Override
@@ -99,11 +101,14 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
     }
 
     private OptionalInt getPartitionCount(KafkaPodAutoscaler kafkaPodAutoscaler) {
-        var consumerGroup = kafkaPodAutoscaler.getSpec().getConsumerGroup();
+        var consumerGroup = kafkaPodAutoscaler.getSpec().getBootstrapServers();
         if (consumerGroup == null) {
             return OptionalInt.empty();
         }
-        throw new UnsupportedOperationException("TODO (consumerGroup=" + consumerGroup + ")");
+        return OptionalInt.of(partitionCountFetcher.countPartitions(
+                kafkaPodAutoscaler.getSpec().getBootstrapServers(),
+                kafkaPodAutoscaler.getSpec().getTopicName()
+        ));
     }
 
     private TriggerResult calculateTriggerResult(Triggers trigger) {

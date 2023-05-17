@@ -1,8 +1,11 @@
 package com.brandwatch.kafka_pod_autoscaler;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -40,12 +43,14 @@ public class KafkaPodAutoscalerReconcilerTest {
     private RollableScalableResource<Deployment> deploymentResource;
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private Deployment deployment;
+    @Mock
+    private PartitionCountFetcher partitionCountFetcher;
     private KafkaPodAutoscalerReconciler reconciler;
     private KafkaPodAutoscaler kpa;
 
     @BeforeEach
     public void beforeEach() {
-        reconciler = new KafkaPodAutoscalerReconciler(true);
+        reconciler = new KafkaPodAutoscalerReconciler(true, partitionCountFetcher);
 
         when(mockContext.getClient()).thenReturn(client);
         @SuppressWarnings("unchecked")
@@ -77,6 +82,7 @@ public class KafkaPodAutoscalerReconcilerTest {
 
         var updateControl = reconciler.reconcile(kpa, mockContext);
 
+        verify(deploymentResource, never()).scale(anyInt());
         assertThat(updateControl.getResource().getStatus().getMessage())
                 .isEqualTo("Deployment not found. Skipping scale");
     }
@@ -87,6 +93,7 @@ public class KafkaPodAutoscalerReconcilerTest {
 
         var updateControl = reconciler.reconcile(kpa, mockContext);
 
+        verify(deploymentResource, never()).scale(anyInt());
         assertThat(updateControl.getResource().getStatus().getMessage())
                 .isEqualTo("Deployment is not ready. Skipping scale");
     }
@@ -97,6 +104,7 @@ public class KafkaPodAutoscalerReconcilerTest {
 
         var updateControl = reconciler.reconcile(kpa, mockContext);
 
+        verify(deploymentResource, never()).scale(anyInt());
         assertThat(updateControl.getResource().getStatus().getMessage())
                 .isEqualTo("Deployment has been scaled to zero. Skipping scale");
     }
@@ -107,6 +115,7 @@ public class KafkaPodAutoscalerReconcilerTest {
 
         var updateControl = reconciler.reconcile(kpa, mockContext);
 
+        verify(deploymentResource).scale(1);
         assertThat(updateControl.getResource().getStatus().getMessage())
                 .isEqualTo("Deployment being scaled from 3 to 1 replicas");
     }
@@ -122,7 +131,29 @@ public class KafkaPodAutoscalerReconcilerTest {
 
         var updateControl = reconciler.reconcile(kpa, mockContext);
 
+        verify(deploymentResource).scale(3);
         assertThat(updateControl.getResource().getStatus().getMessage())
                 .isEqualTo("Deployment being scaled from 1 to 3 replicas");
+    }
+
+    @Test
+    public void canScale_withKafkaConfig_staticTriggers() {
+        var staticTrigger = new Triggers();
+        staticTrigger.setType("static");
+        staticTrigger.setMetadata(Map.of("replicas", "3"));
+        kpa.getSpec().setTriggers(List.of(
+                staticTrigger
+        ));
+        kpa.getSpec().setBootstrapServers("servers");
+        kpa.getSpec().setTopicName("topic");
+
+        when(partitionCountFetcher.countPartitions("servers", "topic"))
+                .thenReturn(4);
+
+        var updateControl = reconciler.reconcile(kpa, mockContext);
+
+        verify(deploymentResource).scale(4);
+        assertThat(updateControl.getResource().getStatus().getMessage())
+                .isEqualTo("Deployment being scaled from 1 to 4 replicas");
     }
 }
