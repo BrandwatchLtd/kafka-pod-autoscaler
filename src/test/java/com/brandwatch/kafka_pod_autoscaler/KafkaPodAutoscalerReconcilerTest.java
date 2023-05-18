@@ -156,4 +156,29 @@ public class KafkaPodAutoscalerReconcilerTest {
         assertThat(updateControl.getResource().getStatus().getMessage())
                 .isEqualTo("Deployment being scaled from 1 to 4 replicas");
     }
+
+    @Test
+    public void canScale_withKafkaConfig_multipleStaticTriggers() {
+        var staticTrigger1 = new Triggers();
+        staticTrigger1.setType("static");
+        staticTrigger1.setMetadata(Map.of("replicas", "2"));
+        var staticTrigger2 = new Triggers();
+        staticTrigger2.setType("static");
+        staticTrigger2.setMetadata(Map.of("replicas", "3"));
+        kpa.getSpec().setTriggers(List.of(
+                staticTrigger1,
+                staticTrigger2
+        ));
+        kpa.getSpec().setBootstrapServers("servers");
+        kpa.getSpec().setTopicName("topic");
+
+        when(partitionCountFetcher.countPartitions("servers", "topic"))
+                .thenReturn(4);
+
+        var updateControl = reconciler.reconcile(kpa, mockContext);
+
+        verify(deploymentResource).scale(4);
+        assertThat(updateControl.getResource().getStatus().getMessage())
+                .isEqualTo("Deployment being scaled from 1 to 4 replicas");
+    }
 }
