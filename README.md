@@ -35,5 +35,6 @@ spec:
         threshold: 
     - type: kafka
       metadata:
-        lagThreshold: 
+        consumeGroupId:
+        threshold: 
 ```
