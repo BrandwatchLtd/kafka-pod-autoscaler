@@ -29,7 +29,9 @@ spec:
       metadata:
         serverAddress: 
         query: 
-        type: [Average/Max]
+        type: [Total/Absolute] # Should the query result be treated as:
+                               # a total across all pods (divide per #pods to compare with threshold, or 
+                               # an Absolute value directly comparable with threshold
         threshold: 
     - type: kafka
       metadata:
