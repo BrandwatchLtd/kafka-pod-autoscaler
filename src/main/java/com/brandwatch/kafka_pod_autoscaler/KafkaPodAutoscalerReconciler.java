@@ -13,9 +13,12 @@ import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 import com.brandwatch.kafka_pod_autoscaler.scaledresources.GenericScaledResourceFactory;
+import com.brandwatch.kafka_pod_autoscaler.triggers.TriggerProcessor;
+import com.brandwatch.kafka_pod_autoscaler.triggers.TriggerResult;
 
 @Slf4j
 @ControllerConfiguration
@@ -111,11 +114,19 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         ));
     }
 
-    private TriggerResult calculateTriggerResult(Triggers trigger) {
-        if (trigger.getType().equals("static")) {
-            return new TriggerResult(trigger, Integer.parseInt(trigger.getMetadata().get("replicas")));
-        }
-        throw new UnsupportedOperationException("Unsupported trigger \"" + trigger.getType() + "\"");
+    private TriggerResult calculateTriggerResult(@NonNull Triggers trigger) {
+        var type = trigger.getType();
+        var processors = ServiceLoader.load(TriggerProcessor.class);
+
+        logger.debug("Attempting to find trigger processor for: {}", type);
+        return processors.stream()
+                         .map(ServiceLoader.Provider::get)
+                         .filter(processor -> processor.getType().equals(type))
+                         .peek(processor -> logger.info("Found trigger processor that supports {}: {} (only the first will be used)",
+                                                        type, processor))
+                         .findFirst()
+                         .orElseThrow(() -> new UnsupportedOperationException("Count not find trigger processor for type: " + type))
+                         .process(trigger);
     }
 
     private int fitReplicaCount(int idealReplicaCount, int partitionCount) {
@@ -129,9 +140,6 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
             return i;
         }
         return partitionCount;
-    }
-
-    record TriggerResult(Triggers trigger, int recommendedReplicas) {
     }
 
     private static class StatusLogger {
