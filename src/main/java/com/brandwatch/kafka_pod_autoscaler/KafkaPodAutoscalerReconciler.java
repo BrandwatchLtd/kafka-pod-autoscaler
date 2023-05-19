@@ -59,8 +59,9 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
 
         var currentReplicaCount = resource.getReplicaCount();
         var idealReplicaCount = kafkaPodAutoscaler.getSpec().getTriggers().stream()
-                                                  .mapToInt(trigger -> calculateTriggerResult(kafkaPodAutoscaler, trigger, currentReplicaCount).recommendedReplicas())
-                                                  .max().orElse(1);
+            .map(trigger -> calculateTriggerResult(context.getClient(), resource, kafkaPodAutoscaler, trigger, currentReplicaCount))
+            .mapToInt(TriggerResult::recommendedReplicas)
+            .max().orElse(1);
         var partitionCount = getPartitionCount(kafkaPodAutoscaler).orElse(idealReplicaCount);
         var bestReplicaCount = fitReplicaCount(idealReplicaCount, partitionCount);
 
@@ -114,7 +115,8 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         ));
     }
 
-    private TriggerResult calculateTriggerResult(KafkaPodAutoscaler autoscaler, @NonNull Triggers trigger, int replicaCount) {
+    private TriggerResult calculateTriggerResult(KubernetesClient client, ScaledResource scaledResource,
+                                                 KafkaPodAutoscaler autoscaler, @NonNull Triggers trigger, int replicaCount) {
         var type = trigger.getType();
         var processors = ServiceLoader.load(TriggerProcessor.class);
 
@@ -126,7 +128,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
                                                         type, processor))
                          .findFirst()
                          .orElseThrow(() -> new UnsupportedOperationException("Count not find trigger processor for type: " + type))
-                         .process(autoscaler, trigger, replicaCount);
+                         .process(client, scaledResource, autoscaler, trigger, replicaCount);
     }
 
     private int fitReplicaCount(int idealReplicaCount, int partitionCount) {

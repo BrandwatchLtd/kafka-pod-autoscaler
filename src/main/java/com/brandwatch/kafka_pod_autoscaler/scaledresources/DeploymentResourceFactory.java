@@ -37,6 +37,6 @@ public class DeploymentResourceFactory implements ScaledResourceFactory {
             throw e;
         }
 
-        return new DeploymentScaledResource(resource);
+        return new DeploymentScaledResource(client, resource);
     }
 }

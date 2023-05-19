@@ -25,7 +25,7 @@ public class GenericScaledResourceFactory implements ScaledResourceFactory {
         if (resource.get() == null) {
             return null;
         }
-        return new GenericScaledResource(resource);
+        return new GenericScaledResource(client, resource);
     }
 
     private Resource<GenericKubernetesResource> getApiResource(KubernetesClient client, String namespace, ScaleTargetRef scaleTargetRef) {

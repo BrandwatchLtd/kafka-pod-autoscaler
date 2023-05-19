@@ -37,6 +37,6 @@ public class StatefulSetResourceFactory implements ScaledResourceFactory {
             throw e;
         }
 
-        return new StatefulSetScaledResource(resource);
+        return new StatefulSetScaledResource(client, resource);
     }
 }
