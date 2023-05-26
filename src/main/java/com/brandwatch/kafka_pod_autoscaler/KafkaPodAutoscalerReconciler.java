@@ -1,6 +1,7 @@
 package com.brandwatch.kafka_pod_autoscaler;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.OptionalInt;
 import java.util.ServiceLoader;
 
@@ -154,6 +155,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
 
         public void log(String message) {
             logger.info("Setting status on autoscaler {} to: {}", name, message);
+            status.setTimestamp(Instant.now().toString());
             status.setMessage(message);
         }
     }
