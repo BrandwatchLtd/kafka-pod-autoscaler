@@ -9,7 +9,7 @@ rules:
     resources:
       - customresourcedefinitions
     verbs:
-      - '*'
+      - get
   - apiGroups:
       - "com.brandwatch"
     resources:
@@ -26,12 +26,14 @@ rules:
   - apiGroups:
       - '*'
     resources:
+      - pods
       - deployments
       - statefulsets
       - cronjobs
       - daemonsets
     verbs:
-      - '*'
+      - get
+      - list
   - apiGroups:
       - '*'
     resources:
