@@ -63,6 +63,18 @@ spec:
                       type: object
                       additionalProperties:
                         type: string
+                    status:
+                      type: object
+                      properties:
+                        inputValue:
+                          type: number
+                          format: double
+                        targetThreshold:
+                          type: number
+                          format: double
+                        recommendedReplicas:
+                          type: integer
+                          format: int32
           status:
             type: object
             properties:
@@ -76,24 +88,6 @@ spec:
               dryRunReplicas:
                 type: integer
                 format: int32
-              triggerResults:
-                type: array
-                nullable: false
-                default: []
-                items:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    inputValue:
-                      type: number
-                      format: double
-                    targetThreshold:
-                      type: number
-                      format: double
-                    recommendedReplicas:
-                      type: integer
-                      format: int32
               partitionCount:
                 type: integer
                 format: int32
