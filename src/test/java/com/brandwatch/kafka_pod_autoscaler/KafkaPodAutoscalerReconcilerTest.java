@@ -50,7 +50,7 @@ public class KafkaPodAutoscalerReconcilerTest {
 
     @BeforeEach
     public void beforeEach() {
-        reconciler = new KafkaPodAutoscalerReconciler(true, partitionCountFetcher);
+        reconciler = new KafkaPodAutoscalerReconciler(partitionCountFetcher);
 
         when(mockContext.getClient()).thenReturn(client);
         @SuppressWarnings("unchecked")

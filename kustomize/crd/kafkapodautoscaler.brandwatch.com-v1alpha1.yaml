@@ -29,6 +29,9 @@ spec:
               - scaleTargetRef
               - triggers
             properties:
+              dryRun:
+                type: boolean
+                default: false
               scaleTargetRef:
                 type: object
                 required:

@@ -12,6 +12,7 @@ kind: KafkaPodAutoscaler
 metadata:
   name: myautoscaler
 spec:
+  dryRun: false # set true to see what the autoscaler _would_ do
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
@@ -45,4 +46,3 @@ spec:
 This repository uses [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) to generate a changelog and semver-based versions for every push to the `main` branch.
 
 Open a PR with your proposed changes, and your commits will be validated against the conventions
-

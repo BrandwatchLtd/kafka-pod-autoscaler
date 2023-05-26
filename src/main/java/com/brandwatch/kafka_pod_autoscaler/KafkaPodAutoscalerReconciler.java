@@ -23,11 +23,9 @@ import com.brandwatch.kafka_pod_autoscaler.triggers.TriggerResult;
 @Slf4j
 @ControllerConfiguration
 public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscaler> {
-    private final boolean doScale;
     private final PartitionCountFetcher partitionCountFetcher;
 
-    public KafkaPodAutoscalerReconciler(boolean doScale, PartitionCountFetcher partitionCountFetcher) {
-        this.doScale = doScale;
+    public KafkaPodAutoscalerReconciler(PartitionCountFetcher partitionCountFetcher) {
         this.partitionCountFetcher = partitionCountFetcher;
     }
 
@@ -66,7 +64,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         var bestReplicaCount = fitReplicaCount(idealReplicaCount, partitionCount);
 
         if (currentReplicaCount != bestReplicaCount) {
-            if (doScale) {
+            if (!kafkaPodAutoscaler.getSpec().getDryRun()) {
                 resource.scale(bestReplicaCount);
             } else {
                 logger.info("Scaling deployment {} to {} replicas", targetName, bestReplicaCount);
