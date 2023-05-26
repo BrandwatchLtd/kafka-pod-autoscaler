@@ -38,9 +38,9 @@ jobs:
         branch: main
 
     - name: Build image to GHCR using jib
-      run: mvn -B jib:build \
-        -Djib.to.image=ghcr.io/${{ github.repository }}:${{ steps.semver.outputs.next }} \
-        -Djib.to.auth.username=${{ github.actor }} \
+      run: mvn -B jib:build
+        -Djib.to.image=ghcr.io/${{ github.repository }}:${{ steps.semver.outputs.next }}
+        -Djib.to.auth.username=${{ github.actor }}
         -Djib.to.auth.password=${{ github.token }}
 
     - name: Generate CHANGELOG
