@@ -2,6 +2,7 @@ package com.brandwatch.kafka_pod_autoscaler.triggers;
 
 import static java.util.Objects.requireNonNull;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -14,6 +15,9 @@ import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.TopicPartition;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.RemovalListener;
 import com.google.auto.service.AutoService;
 
 import brandwatch.com.v1alpha1.KafkaPodAutoscaler;
@@ -26,6 +30,15 @@ import com.brandwatch.kafka_pod_autoscaler.ScaledResource;
 @Slf4j
 @AutoService(TriggerProcessor.class)
 public class KafkaTriggerProcessor implements TriggerProcessor {
+    private static final Cache<String, AdminClient> adminClientCache = Caffeine.newBuilder()
+            .expireAfterWrite(Duration.ofMinutes(10))
+            .removalListener((RemovalListener<String, AdminClient>) (key, value, cause) -> {
+                if (value != null) {
+                    value.close();
+                }
+            })
+            .build();
+
     @Override
     public String getType() {
         return "kafka";
@@ -40,9 +53,12 @@ public class KafkaTriggerProcessor implements TriggerProcessor {
 
         logger.info("Requesting kafka metrics for topic={} and consumerGroupId={}", topic, consumerGroupId);
 
-        var properties = new Properties();
-        properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        try (var adminApi = KafkaAdminClient.create(properties)) {
+        var adminApi = adminClientCache.get(bootstrapServers, s -> {
+            var properties = new Properties();
+            properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+            return KafkaAdminClient.create(properties);
+        });
+        try {
             var partitions = adminApi.describeTopics(List.of(topic)).topicNameValues().get(topic).get().partitions();
             var latestOffsetRequests = partitions
                     .stream()
