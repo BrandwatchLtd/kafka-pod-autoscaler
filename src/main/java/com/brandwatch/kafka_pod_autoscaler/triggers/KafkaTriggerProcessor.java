@@ -1,5 +1,7 @@
 package com.brandwatch.kafka_pod_autoscaler.triggers;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -33,8 +35,8 @@ public class KafkaTriggerProcessor implements TriggerProcessor {
     public TriggerResult process(KubernetesClient client, ScaledResource resource, KafkaPodAutoscaler autoscaler, Triggers trigger, int currentReplicaCount) {
         var topic = autoscaler.getSpec().getTopicName();
         var bootstrapServers = autoscaler.getSpec().getBootstrapServers();
-        var consumerGroupId = trigger.getMetadata().get("consumerGroupId");
-        var threshold = Integer.parseInt(trigger.getMetadata().get("threshold"));
+        var consumerGroupId = requireNonNull(trigger.getMetadata().get("consumerGroupId"));
+        var threshold = Integer.parseInt(requireNonNull(trigger.getMetadata().get("threshold")));
 
         logger.info("Requesting kafka metrics for topic={} and consumerGroupId={}", topic, consumerGroupId);
 

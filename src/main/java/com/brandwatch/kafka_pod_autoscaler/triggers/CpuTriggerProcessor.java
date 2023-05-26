@@ -1,5 +1,7 @@
 package com.brandwatch.kafka_pod_autoscaler.triggers;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.auto.service.AutoService;
 
 import brandwatch.com.v1alpha1.KafkaPodAutoscaler;
@@ -19,7 +21,7 @@ public class CpuTriggerProcessor implements TriggerProcessor {
 
     @Override
     public TriggerResult process(KubernetesClient client, ScaledResource resource, KafkaPodAutoscaler autoscaler, Triggers trigger, int currentReplicaCount) {
-        var threshold = Double.parseDouble(trigger.getMetadata().get("threshold"));
+        var threshold = Double.parseDouble(requireNonNull(trigger.getMetadata().get("threshold")));
         var cpu = resource.pods().stream()
                 .map(pod -> client.top().pods().metrics(pod.getMetadata().getNamespace(), pod.getMetadata().getName()))
                 .flatMap(m -> m.getContainers().stream())
