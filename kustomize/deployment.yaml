@@ -17,8 +17,3 @@ spec:
         - name: operator
           image: kafka-pod-autoscaler
           imagePullPolicy: IfNotPresent
-          env:
-            - name: JAVA_OPTS
-              value: -Dlog.level=DEBUG
-            - name: JAVA_OPTS_DEBUG
-              value: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
