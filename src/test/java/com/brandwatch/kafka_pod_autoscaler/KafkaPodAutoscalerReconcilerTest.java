@@ -22,6 +22,7 @@ import brandwatch.com.v1alpha1.KafkaPodAutoscaler;
 import brandwatch.com.v1alpha1.KafkaPodAutoscalerSpec;
 import brandwatch.com.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
 import brandwatch.com.v1alpha1.kafkapodautoscalerspec.Triggers;
+import brandwatch.com.v1alpha1.kafkapodautoscalerstatus.TriggerResults;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentList;
@@ -29,6 +30,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.NonNamespaceOperation;
 import io.fabric8.kubernetes.client.dsl.RollableScalableResource;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
+import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 
 @ExtendWith(MockitoExtension.class)
 public class KafkaPodAutoscalerReconcilerTest {
@@ -115,6 +117,8 @@ public class KafkaPodAutoscalerReconcilerTest {
                 .isEqualTo(null);
         assertThat(updateControl.getResource().getStatus().getFinalReplicaCount())
                 .isEqualTo(null);
+        assertThat(updateControl.getResource().getStatus().getTriggerResults())
+                .isEqualTo(List.of());
     }
 
     @Test
@@ -164,6 +168,8 @@ public class KafkaPodAutoscalerReconcilerTest {
                 .isEqualTo(1);
         assertThat(updateControl.getResource().getStatus().getFinalReplicaCount())
                 .isEqualTo(1);
+        assertThat(updateControl.getResource().getStatus().getTriggerResults())
+                .isEqualTo(List.of());
     }
 
     @Test
@@ -189,9 +195,9 @@ public class KafkaPodAutoscalerReconcilerTest {
                 .isEqualTo(3);
         assertThat(updateControl.getResource().getStatus().getFinalReplicaCount())
                 .isEqualTo(3);
-        assertThat(staticTrigger.getStatus().getInputValue()).isEqualTo(3);
-        assertThat(staticTrigger.getStatus().getTargetThreshold()).isEqualTo(1);
-        assertThat(staticTrigger.getStatus().getRecommendedReplicas()).isEqualTo(3);
+        assertTriggerResults(updateControl, List.of(
+                createTriggerResultDTO("static", 3, 1, 3)
+        ));
     }
 
     @Test
@@ -222,9 +228,9 @@ public class KafkaPodAutoscalerReconcilerTest {
                 .isEqualTo(3);
         assertThat(updateControl.getResource().getStatus().getFinalReplicaCount())
                 .isEqualTo(4);
-        assertThat(staticTrigger.getStatus().getInputValue()).isEqualTo(3);
-        assertThat(staticTrigger.getStatus().getTargetThreshold()).isEqualTo(1);
-        assertThat(staticTrigger.getStatus().getRecommendedReplicas()).isEqualTo(3);
+        assertTriggerResults(updateControl, List.of(
+                createTriggerResultDTO("static", 3, 1, 3)
+        ));
     }
 
     @Test
@@ -259,11 +265,36 @@ public class KafkaPodAutoscalerReconcilerTest {
                 .isEqualTo(3);
         assertThat(updateControl.getResource().getStatus().getFinalReplicaCount())
                 .isEqualTo(4);
-        assertThat(staticTrigger1.getStatus().getInputValue()).isEqualTo(2);
-        assertThat(staticTrigger1.getStatus().getTargetThreshold()).isEqualTo(1);
-        assertThat(staticTrigger1.getStatus().getRecommendedReplicas()).isEqualTo(2);
-        assertThat(staticTrigger2.getStatus().getInputValue()).isEqualTo(3);
-        assertThat(staticTrigger2.getStatus().getTargetThreshold()).isEqualTo(1);
-        assertThat(staticTrigger2.getStatus().getRecommendedReplicas()).isEqualTo(3);
+        assertTriggerResults(updateControl, List.of(
+                createTriggerResultDTO("static", 2, 1, 2),
+                createTriggerResultDTO("static", 3, 1, 3)
+        ));
+    }
+
+    private void assertTriggerResults(UpdateControl<KafkaPodAutoscaler> updateControl, List<TriggerResults> expectedResults) {
+        var triggerResults = updateControl.getResource().getStatus().getTriggerResults();
+
+        assertThat(triggerResults).hasSize(expectedResults.size());
+
+        for (int i = 0; i < triggerResults.size(); i++) {
+            var result = triggerResults.get(i);
+            var expected = expectedResults.get(i);
+
+            assertThat(result.getType()).isEqualTo(expected.getType());
+            assertThat(result.getInputValue()).isEqualTo(expected.getInputValue());
+            assertThat(result.getTargetThreshold()).isEqualTo(expected.getTargetThreshold());
+            assertThat(result.getRecommendedReplicas()).isEqualTo(expected.getRecommendedReplicas());
+        }
+    }
+
+    private static TriggerResults createTriggerResultDTO(String type, double inputValue, double targetThreshold, int recommendedReplicas) {
+        var triggerResults = new TriggerResults();
+
+        triggerResults.setType(type);
+        triggerResults.setInputValue(inputValue);
+        triggerResults.setTargetThreshold(targetThreshold);
+        triggerResults.setRecommendedReplicas(recommendedReplicas);
+
+        return triggerResults;
     }
 }
