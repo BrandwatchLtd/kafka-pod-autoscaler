@@ -73,6 +73,37 @@ spec:
                 example: "2021-01-30T08:30:00Z"
               message:
                 type: string
+              triggerResults:
+                type: array
+                nullable: false
+                default: []
+                items:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                    inputValue:
+                      type: number
+                      format: double
+                    targetThreshold:
+                      type: number
+                      format: double
+                    recommendedReplicas:
+                      type: integer
+                      format: int32
+              partitionCount:
+                type: integer
+                format: int32
+              currentReplicaCount:
+                type: integer
+                format: int32
+              calculatedReplicaCount:
+                type: integer
+                format: int32
+              finalReplicaCount:
+                type: integer
+                format: int32
+
     served: true
     storage: true
     subresources:
