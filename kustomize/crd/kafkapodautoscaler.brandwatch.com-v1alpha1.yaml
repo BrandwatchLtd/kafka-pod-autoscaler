@@ -73,6 +73,9 @@ spec:
                 example: "2021-01-30T08:30:00Z"
               message:
                 type: string
+              dryRunReplicas:
+                type: integer
+                format: int32
               triggerResults:
                 type: array
                 nullable: false

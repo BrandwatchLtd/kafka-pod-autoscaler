@@ -3,6 +3,7 @@ package com.brandwatch.kafka_pod_autoscaler;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.ServiceLoader;
 
@@ -57,7 +58,11 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
                                 .rescheduleAfter(Duration.ofSeconds(10));
         }
 
-        var currentReplicaCount = resource.getReplicaCount();
+        var currentReplicaCount = kafkaPodAutoscaler.getSpec().getDryRun()
+                ? Optional.ofNullable(kafkaPodAutoscaler.getStatus().getDryRunReplicas())
+                          .orElse(resource.getReplicaCount())
+                : resource.getReplicaCount();
+
         var calculatedReplicaCount = kafkaPodAutoscaler.getSpec().getTriggers().stream()
             .map(trigger -> calculateTriggerResult(context.getClient(), resource, kafkaPodAutoscaler, trigger, currentReplicaCount))
             .mapToInt(r -> {
@@ -80,7 +85,10 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
 
         if (currentReplicaCount != finalReplicaCount) {
             if (!kafkaPodAutoscaler.getSpec().getDryRun()) {
+                statusLogger.setDryRunReplicas(null);
                 resource.scale(finalReplicaCount);
+            } else {
+                statusLogger.setDryRunReplicas(finalReplicaCount);
             }
             statusLogger.log(targetKind + " being scaled from " + currentReplicaCount
                                      + " to " + finalReplicaCount + " replicas");
@@ -196,6 +204,10 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
 
         public void recordFinalReplicaCount(int finalReplicaCount) {
             status.setFinalReplicaCount(finalReplicaCount);
+        }
+
+        public void setDryRunReplicas(Integer dryRunReplicas) {
+            status.setDryRunReplicas(dryRunReplicas);
         }
     }
 }
