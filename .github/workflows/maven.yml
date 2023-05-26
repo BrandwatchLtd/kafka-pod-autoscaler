@@ -14,9 +14,12 @@ on:
   pull_request:
     branches: [ "main" ]
 
+concurrency:
+  group: maven-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
