@@ -9,11 +9,14 @@ on:
       - 'main'
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
     permissions:
       contents: write
       packages: write
+
     steps:
     - uses: actions/checkout@v3
 
@@ -39,7 +42,7 @@ jobs:
         branch: main
 
     - id: get-repository-name
-      run: echo "::set-output name=name::${VAR,,}"
+      run: echo "name=name::${VAR,,}" >> $GITHUB_OUTPUT
       env:
         VAR: ${{ github.repository }}
 
