@@ -66,6 +66,11 @@ spec:
           status:
             type: object
             properties:
+              timestamp:
+                type: string
+                format: date-time
+                description: The date and time that this message was added
+                example: "2021-01-30T08:30:00Z"
               message:
                 type: string
     served: true
