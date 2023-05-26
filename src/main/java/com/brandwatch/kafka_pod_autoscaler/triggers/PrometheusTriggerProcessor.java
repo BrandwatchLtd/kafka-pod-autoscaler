@@ -1,5 +1,7 @@
 package com.brandwatch.kafka_pod_autoscaler.triggers;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -46,10 +48,10 @@ public class PrometheusTriggerProcessor implements TriggerProcessor {
             type: [Average/Max]
             threshold:
          */
-        var serverAddress = trigger.getMetadata().get("serverAddress");
-        var query = trigger.getMetadata().get("query");
-        var type = trigger.getMetadata().get("type");
-        var threshold = Double.parseDouble(trigger.getMetadata().get("threshold"));
+        var serverAddress = requireNonNull(trigger.getMetadata().get("serverAddress"));
+        var query = requireNonNull(trigger.getMetadata().get("query"));
+        var type = requireNonNull(trigger.getMetadata().get("type"));
+        var threshold = Double.parseDouble(requireNonNull(trigger.getMetadata().get("threshold")));
         var uri = buildMetricsUri(serverAddress, query,autoscaler.getSpec().getScaleTargetRef().getName());
         var request = HttpRequest.newBuilder()
                                  .uri(uri)

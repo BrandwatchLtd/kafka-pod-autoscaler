@@ -1,5 +1,7 @@
 package com.brandwatch.kafka_pod_autoscaler.triggers;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.auto.service.AutoService;
 
 import brandwatch.com.v1alpha1.KafkaPodAutoscaler;
@@ -17,6 +19,6 @@ public class StaticTriggerProcessor implements TriggerProcessor {
 
     @Override
     public TriggerResult process(KubernetesClient client, ScaledResource resource, KafkaPodAutoscaler autoscaler, Triggers trigger, int currentReplicaCount) {
-        return new TriggerResult(trigger, Integer.parseInt(trigger.getMetadata().get("replicas")));
+        return new TriggerResult(trigger, Integer.parseInt(requireNonNull(trigger.getMetadata().get("replicas"))));
     }
 }

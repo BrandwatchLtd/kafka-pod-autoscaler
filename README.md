@@ -36,7 +36,7 @@ spec:
         threshold: 
     - type: kafka
       metadata:
-        consumeGroupId:
+        consumerGroupId:
         threshold: 
 ```
 
