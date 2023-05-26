@@ -41,7 +41,7 @@
       <dependency>
         <groupId>org.junit</groupId>
         <artifactId>junit-bom</artifactId>
-        <version>5.9.2</version>
+        <version>5.9.3</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -66,7 +66,7 @@
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>1.4.6</version>
+      <version>1.4.7</version>
     </dependency>
     <dependency>
       <groupId>co.elastic.logging</groupId>
@@ -135,7 +135,7 @@
     <dependency>
       <groupId>com.google.cloud.tools</groupId>
       <artifactId>jib-core</artifactId>
-      <version>0.23.0</version>
+      <version>0.24.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -210,7 +210,7 @@
       <plugin>
         <groupId>com.google.cloud.tools</groupId>
         <artifactId>jib-maven-plugin</artifactId>
-        <version>3.3.1</version>
+        <version>3.3.2</version>
         <configuration>
           <skip>${skipDockerBuild}</skip>
           <from>
@@ -328,7 +328,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
-        <version>3.0.0</version>
+        <version>3.1.0</version>
         <configuration>
           <includes>
             <include>**/*IT*.java</include>
