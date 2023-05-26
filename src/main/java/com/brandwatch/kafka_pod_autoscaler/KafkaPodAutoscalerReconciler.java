@@ -2,6 +2,8 @@ package com.brandwatch.kafka_pod_autoscaler;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.ServiceLoader;
@@ -16,6 +18,7 @@ import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -57,6 +60,13 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
                                 .rescheduleAfter(Duration.ofSeconds(10));
         }
 
+        var rescaleWindow = Instant.now().minus(Duration.ofSeconds(kafkaPodAutoscaler.getSpec().getCooloffSeconds()));
+        if (statusLogger.getLastScale() != null && statusLogger.getLastScale().isAfter(rescaleWindow)) {
+            statusLogger.log(targetKind + " has been scaled recently. Skipping scale");
+            return UpdateControl.patchStatus(kafkaPodAutoscaler)
+                                .rescheduleAfter(Duration.ofSeconds(10));
+        }
+
         var currentReplicaCount = kafkaPodAutoscaler.getSpec().getDryRun()
                 ? Optional.ofNullable(kafkaPodAutoscaler.getStatus().getDryRunReplicas())
                           .orElse(resource.getReplicaCount())
@@ -93,6 +103,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
             } else {
                 statusLogger.setDryRunReplicas(finalReplicaCount);
             }
+            statusLogger.recordLastScale();
             statusLogger.log(targetKind + " being scaled from " + currentReplicaCount
                                      + " to " + finalReplicaCount + " replicas");
         } else {
@@ -165,12 +176,21 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         return partitionCount;
     }
 
-    private static class StatusLogger {
+    static class StatusLogger {
+        private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ISO_DATE_TIME;
+
         private final String name;
+        @Getter
+        private final Instant lastScale;
         private final KafkaPodAutoscalerStatus status;
 
         public StatusLogger(KafkaPodAutoscaler kafkaPodAutoscaler) {
             name = kafkaPodAutoscaler.getMetadata().getName();
+            lastScale = Optional.ofNullable(kafkaPodAutoscaler.getStatus())
+                    .map(KafkaPodAutoscalerStatus::getLastScale)
+                    .map(DATE_TIME_FORMATTER::parse)
+                    .map(Instant::from)
+                    .orElse(null);
             status = new KafkaPodAutoscalerStatus();
             kafkaPodAutoscaler.setStatus(status);
         }
@@ -199,6 +219,10 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
 
         public void setDryRunReplicas(Integer dryRunReplicas) {
             status.setDryRunReplicas(dryRunReplicas);
+        }
+
+        public void recordLastScale() {
+            status.setLastScale(DATE_TIME_FORMATTER.format(Instant.now().atZone(ZoneOffset.UTC)));
         }
     }
 }

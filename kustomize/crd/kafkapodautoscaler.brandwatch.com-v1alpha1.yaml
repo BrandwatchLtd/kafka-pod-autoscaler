@@ -32,6 +32,10 @@ spec:
               dryRun:
                 type: boolean
                 default: false
+              cooloffSeconds:
+                type: integer
+                format: int32
+                default: 300
               scaleTargetRef:
                 type: object
                 required:
@@ -85,6 +89,11 @@ spec:
                 example: "2021-01-30T08:30:00Z"
               message:
                 type: string
+              lastScale:
+                type: string
+                format: date-time
+                description: The date and time that this message was added
+                example: "2021-01-30T08:30:00Z"
               dryRunReplicas:
                 type: integer
                 format: int32

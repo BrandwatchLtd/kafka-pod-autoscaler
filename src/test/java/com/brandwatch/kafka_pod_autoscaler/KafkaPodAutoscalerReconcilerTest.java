@@ -118,6 +118,33 @@ public class KafkaPodAutoscalerReconcilerTest {
     }
 
     @Test
+    public void scaledWithinCooloff() {
+        var staticTrigger = new Triggers();
+        staticTrigger.setType("static");
+        staticTrigger.setMetadata(Map.of("replicas", "3"));
+        kpa.getSpec().setTriggers(List.of(
+                staticTrigger
+        ));
+        var status = new KafkaPodAutoscalerReconciler.StatusLogger(kpa);
+        status.recordLastScale();
+        when(deployment.getSpec().getReplicas()).thenReturn(1);
+
+        var updateControl = reconciler.reconcile(kpa, mockContext);
+
+        verify(deploymentResource, never()).scale(anyInt());
+        assertThat(updateControl.getResource().getStatus().getMessage())
+                .isEqualTo("Deployment has been scaled recently. Skipping scale");
+        assertThat(updateControl.getResource().getStatus().getCurrentReplicaCount())
+                .isEqualTo(null);
+        assertThat(updateControl.getResource().getStatus().getPartitionCount())
+                .isEqualTo(null);
+        assertThat(updateControl.getResource().getStatus().getCalculatedReplicaCount())
+                .isEqualTo(null);
+        assertThat(updateControl.getResource().getStatus().getFinalReplicaCount())
+                .isEqualTo(null);
+    }
+
+    @Test
     public void canScale_withNoKafkaConfigOrTriggers() {
         when(deployment.getSpec().getReplicas()).thenReturn(3);
 
