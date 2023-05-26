@@ -21,7 +21,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
@@ -83,10 +82,6 @@ class KafkaPodAutoscalerIT {
             .withPrivilegedMode(true)
             .waitingFor(Wait.forHttp("/v2/_catalog").forStatusCode(200))
             .withLogConsumer(new FileConsumer(Path.of("target/registry.log")));
-    @Container
-    public static final KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.4.0"))
-            .withNetwork(k3s.getNetwork())
-            .withNetworkAliases("kafka");
 
     private String namespace;
     private static KubernetesClient client;
