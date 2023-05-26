@@ -54,7 +54,7 @@ jobs:
       uses: requarks/changelog-action@v1
       with:
         token: ${{ github.token }}
-        fromTag: ${{ github.ref_name }}
+        fromTag: ${{ steps.semver.outputs.next }}
         toTag: ${{ steps.semver.outputs.current }}
         writeToFile: false
 
@@ -64,6 +64,7 @@ jobs:
         allowUpdates: true
         draft: false
         makeLatest: true
-        name: ${{ steps.semver.outputs.next }}
+        tag: ${{ steps.semver.outputs.next }}
+        commit: ${{ github.ref }}
         body: ${{ steps.changelog.outputs.changes }}
         token: ${{ github.token }}
