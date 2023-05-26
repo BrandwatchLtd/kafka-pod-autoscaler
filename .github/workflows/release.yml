@@ -1,0 +1,63 @@
+# This workflow release a new version of the app, after a successful build of main
+name: Release
+
+on:
+  workflow_run:
+    workflows: ["Maven verify"]
+    types: [completed]
+    branches:
+      - 'main'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'corretto'
+        cache: maven
+
+    - name: Restore cached build output
+      id: cache-output-restore
+      uses: actions/cache/restore@v3
+      with:
+        path: target
+        key: build-output
+
+    - name: Get Next Version
+      id: semver
+      uses: ietf-tools/semver-action@v1
+      with:
+        token: ${{ github.token }}
+        branch: main
+
+    - name: Build image to GHCR using jib
+      run: mvn -B jib:build \
+        -Djib.to.image=ghcr.io/${{ github.repository }}:${{ steps.semver.outputs.next }} \
+        -Djib.to.auth.username=${{ github.actor }} \
+        -Djib.to.auth.password=${{ github.token }}
+
+    - name: Generate CHANGELOG
+      id: changelog
+      uses: requarks/changelog-action@v1
+      with:
+        token: ${{ github.token }}
+        fromTag: ${{ steps.semver.outputs.next }}
+        toTag: ${{ steps.semver.outputs.current }}
+        writeToFile: false
+
+    - name: Create Release
+      uses: ncipollo/release-action@v1.12.0
+      with:
+        allowUpdates: true
+        draft: false
+        makeLatest: true
+        name: ${{ steps.semver.outputs.next }}
+        body: ${{ steps.changelog.outputs.changes }}
+        token: ${{ github.token }}
