@@ -162,7 +162,7 @@ class KafkaPodAutoscalerIT {
     }
 
     @Test
-    public void canScaleStatically() throws IOException {
+    public void canScaleStatically() throws IOException, InterruptedException {
         logger.info("Deploying test workload");
         applyKustomize("src/test/resources/workload/static");
 
@@ -175,7 +175,7 @@ class KafkaPodAutoscalerIT {
     }
 
     @Test
-    public void canScaleStatically_statefulset() throws IOException {
+    public void canScaleStatically_statefulset() throws IOException, InterruptedException {
         logger.info("Deploying test workload");
         applyKustomize("src/test/resources/workload/static_statefulset");
 
@@ -188,7 +188,7 @@ class KafkaPodAutoscalerIT {
     }
 
     @Test
-    public void doesNotScaleIfReplicasSetToZero() throws IOException {
+    public void doesNotScaleIfReplicasSetToZero() throws IOException, InterruptedException {
         logger.info("Deploying test workload");
         applyKustomize("src/test/resources/workload/static");
 
@@ -235,17 +235,17 @@ class KafkaPodAutoscalerIT {
         });
     }
 
-    private static void deployOperator() throws IOException {
+    private static void deployOperator() throws IOException, InterruptedException {
         applyKustomize("src/test/resources/operator", OPERATOR_NAMESPACE);
 
         waitForPodsWithLabel(OPERATOR_NAMESPACE, "app", "kafka-pod-autoscaler", 1);
     }
 
-    void applyKustomize(String path) throws IOException {
+    void applyKustomize(String path) throws IOException, InterruptedException {
         applyKustomize(path, namespace);
     }
 
-    static void applyKustomize(String path, String namespace) throws IOException {
+    static void applyKustomize(String path, String namespace) throws IOException, InterruptedException {
         var process = Runtime.getRuntime().exec("kustomize build " + path);
 
         try (var yamlStream = process.getInputStream()) {
@@ -263,7 +263,7 @@ class KafkaPodAutoscalerIT {
                   .inNamespace(namespace)
                   .serverSideApply();
         }
-        if (process.exitValue() != 0) {
+        if (process.waitFor() != 0) {
             process.getErrorStream().transferTo(System.out);
             throw new RuntimeException("Kustomize exited with status " + process.exitValue());
         }
