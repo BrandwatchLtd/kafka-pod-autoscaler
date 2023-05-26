@@ -85,7 +85,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
             statusLogger.log(targetKind + " being scaled from " + currentReplicaCount
                                      + " to " + finalReplicaCount + " replicas");
         } else {
-            statusLogger.log(targetKind + " is correctly scaled to " + finalReplicaCount + "replicas");
+            statusLogger.log(targetKind + " is correctly scaled to " + finalReplicaCount + " replicas");
         }
 
         return UpdateControl.patchStatus(kafkaPodAutoscaler)

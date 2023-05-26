@@ -4,6 +4,6 @@ import brandwatch.com.v1alpha1.kafkapodautoscalerspec.Triggers;
 
 public record TriggerResult(Triggers trigger, double inputValue, double targetThreshold) {
     public int recommendedReplicas(int currentReplicaCount) {
-        return (int) Math.ceil(currentReplicaCount * (targetThreshold / inputValue));
+        return (int) Math.ceil(currentReplicaCount * (inputValue / targetThreshold));
     }
 }

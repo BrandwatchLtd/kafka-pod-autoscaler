@@ -154,6 +154,7 @@ public class KafkaPodAutoscalerReconcilerTest {
         var updateControl = reconciler.reconcile(kpa, mockContext);
 
         verify(deploymentResource).scale(3);
+
         assertThat(updateControl.getResource().getStatus().getMessage())
                 .isEqualTo("Deployment being scaled from 1 to 3 replicas");
         assertThat(updateControl.getResource().getStatus().getCurrentReplicaCount())
@@ -165,7 +166,7 @@ public class KafkaPodAutoscalerReconcilerTest {
         assertThat(updateControl.getResource().getStatus().getFinalReplicaCount())
                 .isEqualTo(3);
         assertTriggerResults(updateControl, List.of(
-                createTriggerResultDTO("static", 1, 3, 3)
+                createTriggerResultDTO("static", 3, 1, 3)
         ));
     }
 
@@ -186,6 +187,7 @@ public class KafkaPodAutoscalerReconcilerTest {
         var updateControl = reconciler.reconcile(kpa, mockContext);
 
         verify(deploymentResource).scale(4);
+
         assertThat(updateControl.getResource().getStatus().getMessage())
                 .isEqualTo("Deployment being scaled from 1 to 4 replicas");
         assertThat(updateControl.getResource().getStatus().getCurrentReplicaCount())
@@ -197,7 +199,7 @@ public class KafkaPodAutoscalerReconcilerTest {
         assertThat(updateControl.getResource().getStatus().getFinalReplicaCount())
                 .isEqualTo(4);
         assertTriggerResults(updateControl, List.of(
-                createTriggerResultDTO("static", 1, 3, 3)
+                createTriggerResultDTO("static", 3, 1, 3)
         ));
     }
 
@@ -222,6 +224,7 @@ public class KafkaPodAutoscalerReconcilerTest {
         var updateControl = reconciler.reconcile(kpa, mockContext);
 
         verify(deploymentResource).scale(4);
+
         assertThat(updateControl.getResource().getStatus().getMessage())
                 .isEqualTo("Deployment being scaled from 1 to 4 replicas");
         assertThat(updateControl.getResource().getStatus().getCurrentReplicaCount())
@@ -233,8 +236,8 @@ public class KafkaPodAutoscalerReconcilerTest {
         assertThat(updateControl.getResource().getStatus().getFinalReplicaCount())
                 .isEqualTo(4);
         assertTriggerResults(updateControl, List.of(
-                createTriggerResultDTO("static", 1, 2, 2),
-                createTriggerResultDTO("static", 1, 3, 3)
+                createTriggerResultDTO("static", 2, 1, 2),
+                createTriggerResultDTO("static", 3, 1, 3)
         ));
     }
 
