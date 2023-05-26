@@ -48,7 +48,7 @@ jobs:
         branch: ${{ github.event.workflow_run.head_sha }}
 
     - id: get-repository-name
-      run: echo "name=name::${VAR,,}" >> $GITHUB_OUTPUT
+      run: echo "name=${VAR,,}" >> $GITHUB_OUTPUT
       env:
         VAR: ${{ github.repository }}
 
