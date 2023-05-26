@@ -2,22 +2,15 @@ package com.brandwatch.kafka_pod_autoscaler.triggers;
 
 import static java.util.Objects.requireNonNull;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.KafkaAdminClient;
 import org.apache.kafka.clients.admin.OffsetSpec;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.TopicPartition;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.RemovalListener;
 import com.google.auto.service.AutoService;
 
 import brandwatch.com.v1alpha1.KafkaPodAutoscaler;
@@ -25,20 +18,12 @@ import brandwatch.com.v1alpha1.kafkapodautoscalerspec.Triggers;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import lombok.extern.slf4j.Slf4j;
 
+import com.brandwatch.kafka_pod_autoscaler.cache.AdminClientCache;
 import com.brandwatch.kafka_pod_autoscaler.ScaledResource;
 
 @Slf4j
 @AutoService(TriggerProcessor.class)
 public class KafkaTriggerProcessor implements TriggerProcessor {
-    private static final Cache<String, AdminClient> adminClientCache = Caffeine.newBuilder()
-            .expireAfterWrite(Duration.ofMinutes(10))
-            .removalListener((RemovalListener<String, AdminClient>) (key, value, cause) -> {
-                if (value != null) {
-                    value.close();
-                }
-            })
-            .build();
-
     @Override
     public String getType() {
         return "kafka";
@@ -51,13 +36,9 @@ public class KafkaTriggerProcessor implements TriggerProcessor {
         var consumerGroupId = requireNonNull(trigger.getMetadata().get("consumerGroupId"));
         var threshold = Integer.parseInt(requireNonNull(trigger.getMetadata().get("threshold")));
 
-        logger.info("Requesting kafka metrics for topic={} and consumerGroupId={}", topic, consumerGroupId);
+        logger.debug("Requesting kafka metrics for topic={} and consumerGroupId={}", topic, consumerGroupId);
 
-        var adminApi = adminClientCache.get(bootstrapServers, s -> {
-            var properties = new Properties();
-            properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-            return KafkaAdminClient.create(properties);
-        });
+        var adminApi = AdminClientCache.get(bootstrapServers);
         try {
             var partitions = adminApi.describeTopics(List.of(topic)).topicNameValues().get(topic).get().partitions();
             var latestOffsetRequests = partitions
