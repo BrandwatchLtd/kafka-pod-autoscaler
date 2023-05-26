@@ -45,7 +45,7 @@ public class KafkaTriggerProcessor implements TriggerProcessor {
     }
 
     @Override
-    public TriggerResult process(KubernetesClient client, ScaledResource resource, KafkaPodAutoscaler autoscaler, Triggers trigger, int currentReplicaCount) {
+    public TriggerResult process(KubernetesClient client, ScaledResource resource, KafkaPodAutoscaler autoscaler, Triggers trigger, int replicaCount) {
         var topic = autoscaler.getSpec().getTopicName();
         var bootstrapServers = autoscaler.getSpec().getBootstrapServers();
         var consumerGroupId = requireNonNull(trigger.getMetadata().get("consumerGroupId"));
@@ -73,8 +73,7 @@ public class KafkaTriggerProcessor implements TriggerProcessor {
                                      .mapToLong(partition -> topicEndOffsets.get(partition) - consumerOffsets.get(partition))
                                      .sum();
 
-            var newReplicas = (int) Math.ceil(currentReplicaCount * (lag / (double) threshold));
-            return new TriggerResult(trigger, newReplicas);
+            return new TriggerResult(trigger, lag, threshold);
         } catch (ExecutionException e) {
             throw new RuntimeException(e);
         } catch (InterruptedException e) {

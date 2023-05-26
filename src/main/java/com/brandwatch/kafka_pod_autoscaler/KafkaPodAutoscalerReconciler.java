@@ -2,6 +2,7 @@ package com.brandwatch.kafka_pod_autoscaler;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.OptionalInt;
 import java.util.ServiceLoader;
 
@@ -9,6 +10,7 @@ import brandwatch.com.v1alpha1.KafkaPodAutoscaler;
 import brandwatch.com.v1alpha1.KafkaPodAutoscalerStatus;
 import brandwatch.com.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
 import brandwatch.com.v1alpha1.kafkapodautoscalerspec.Triggers;
+import brandwatch.com.v1alpha1.kafkapodautoscalerstatus.TriggerResults;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
@@ -32,7 +34,6 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
 
     @Override
     public UpdateControl<KafkaPodAutoscaler> reconcile(KafkaPodAutoscaler kafkaPodAutoscaler, Context<KafkaPodAutoscaler> context) {
-        var targetName = kafkaPodAutoscaler.getSpec().getScaleTargetRef().getName();
         var targetKind = kafkaPodAutoscaler.getSpec().getScaleTargetRef().getKind();
         var statusLogger = new StatusLogger(kafkaPodAutoscaler);
         var resource = getScaledResource(context.getClient(), kafkaPodAutoscaler.getMetadata().getNamespace(),
@@ -57,24 +58,34 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         }
 
         var currentReplicaCount = resource.getReplicaCount();
-        var idealReplicaCount = kafkaPodAutoscaler.getSpec().getTriggers().stream()
+        var calculatedReplicaCount = kafkaPodAutoscaler.getSpec().getTriggers().stream()
             .map(trigger -> calculateTriggerResult(context.getClient(), resource, kafkaPodAutoscaler, trigger, currentReplicaCount))
-            .mapToInt(TriggerResult::recommendedReplicas)
-            .max().orElse(1);
-        var partitionCount = getPartitionCount(kafkaPodAutoscaler).orElse(idealReplicaCount);
-        var bestReplicaCount = fitReplicaCount(idealReplicaCount, partitionCount);
+            .mapToInt(r -> {
+                var replicas = r.recommendedReplicas(currentReplicaCount);
 
-        if (currentReplicaCount != bestReplicaCount) {
+                statusLogger.recordTriggerResult(r, replicas);
+
+                return replicas;
+            })
+            .max().orElse(1);
+        var partitionCount = getPartitionCount(kafkaPodAutoscaler);
+        var finalReplicaCount = fitReplicaCount(calculatedReplicaCount, partitionCount.orElse(calculatedReplicaCount));
+
+        if (partitionCount.isPresent()) {
+            statusLogger.recordPartitionCount(partitionCount.getAsInt());
+        }
+        statusLogger.recordCurrentReplicaCount(currentReplicaCount);
+        statusLogger.recordCalculatedReplicaCount(calculatedReplicaCount);
+        statusLogger.recordFinalReplicaCount(finalReplicaCount);
+
+        if (currentReplicaCount != finalReplicaCount) {
             if (!kafkaPodAutoscaler.getSpec().getDryRun()) {
-                resource.scale(bestReplicaCount);
-            } else {
-                logger.info("Scaling deployment {} to {} replicas", targetName, bestReplicaCount);
+                resource.scale(finalReplicaCount);
             }
-            // TODO: Expand reason, statuses for each trigger?
             statusLogger.log(targetKind + " being scaled from " + currentReplicaCount
-                                     + " to " + bestReplicaCount + " replicas");
+                                     + " to " + finalReplicaCount + " replicas");
         } else {
-            statusLogger.log(targetKind + " is correctly scaled to " + bestReplicaCount + "replicas");
+            statusLogger.log(targetKind + " is correctly scaled to " + finalReplicaCount + "replicas");
         }
 
         return UpdateControl.patchStatus(kafkaPodAutoscaler)
@@ -150,6 +161,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         public StatusLogger(KafkaPodAutoscaler kafkaPodAutoscaler) {
             name = kafkaPodAutoscaler.getMetadata().getName();
             status = new KafkaPodAutoscalerStatus();
+            status.setTriggerResults(new ArrayList<>());
             kafkaPodAutoscaler.setStatus(status);
         }
 
@@ -157,6 +169,33 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
             logger.info("Setting status on autoscaler {} to: {}", name, message);
             status.setTimestamp(Instant.now().toString());
             status.setMessage(message);
+        }
+
+        public void recordTriggerResult(TriggerResult result, int recommendedReplicas) {
+            var triggerResults = new TriggerResults();
+            triggerResults.setType(result.trigger().getType());
+            triggerResults.setInputValue(result.inputValue());
+            triggerResults.setTargetThreshold(result.targetThreshold());
+            triggerResults.setRecommendedReplicas(recommendedReplicas);
+
+            status.getTriggerResults()
+                  .add(triggerResults);
+        }
+
+        public void recordPartitionCount(int partitionCount) {
+            status.setPartitionCount(partitionCount);
+        }
+
+        public void recordCurrentReplicaCount(int currentReplicaCount) {
+            status.setCurrentReplicaCount(currentReplicaCount);
+        }
+
+        public void recordCalculatedReplicaCount(int calculatedReplicaCount) {
+            status.setCalculatedReplicaCount(calculatedReplicaCount);
+        }
+
+        public void recordFinalReplicaCount(int finalReplicaCount) {
+            status.setFinalReplicaCount(finalReplicaCount);
         }
     }
 }

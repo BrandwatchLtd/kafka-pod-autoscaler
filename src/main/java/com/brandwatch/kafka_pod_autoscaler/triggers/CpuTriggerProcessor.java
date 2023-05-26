@@ -20,7 +20,7 @@ public class CpuTriggerProcessor implements TriggerProcessor {
     }
 
     @Override
-    public TriggerResult process(KubernetesClient client, ScaledResource resource, KafkaPodAutoscaler autoscaler, Triggers trigger, int currentReplicaCount) {
+    public TriggerResult process(KubernetesClient client, ScaledResource resource, KafkaPodAutoscaler autoscaler, Triggers trigger, int replicaCount) {
         var threshold = Double.parseDouble(requireNonNull(trigger.getMetadata().get("threshold")));
         var cpu = resource.pods().stream()
                 .map(pod -> client.top().pods().metrics(pod.getMetadata().getNamespace(), pod.getMetadata().getName()))
@@ -29,7 +29,6 @@ public class CpuTriggerProcessor implements TriggerProcessor {
                 .average()
                 .orElse(0);
 
-        var newReplicas = (int) Math.ceil(currentReplicaCount * (cpu / threshold));
-        return new TriggerResult(trigger, newReplicas);
+        return new TriggerResult(trigger, cpu, threshold);
     }
 }

@@ -9,5 +9,5 @@ import com.brandwatch.kafka_pod_autoscaler.ScaledResource;
 public interface TriggerProcessor {
     String getType();
 
-    TriggerResult process(KubernetesClient client, ScaledResource resource, KafkaPodAutoscaler autoscaler, Triggers trigger, int currentReplicaCount);
+    TriggerResult process(KubernetesClient client, ScaledResource resource, KafkaPodAutoscaler autoscaler, Triggers trigger, int replicaCount);
 }

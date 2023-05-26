@@ -67,9 +67,8 @@ public class PrometheusTriggerProcessor implements TriggerProcessor {
             if (type.equals("Total")) {
                 value /= replicaCount;
             }
-            var newReplicaCount = (int) Math.ceil(replicaCount * (value / threshold));
 
-            return new TriggerResult(trigger, newReplicaCount);
+            return new TriggerResult(trigger, value, threshold);
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }

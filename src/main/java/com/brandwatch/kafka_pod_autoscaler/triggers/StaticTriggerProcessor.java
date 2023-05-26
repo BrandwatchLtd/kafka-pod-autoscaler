@@ -18,7 +18,8 @@ public class StaticTriggerProcessor implements TriggerProcessor {
     }
 
     @Override
-    public TriggerResult process(KubernetesClient client, ScaledResource resource, KafkaPodAutoscaler autoscaler, Triggers trigger, int currentReplicaCount) {
-        return new TriggerResult(trigger, Integer.parseInt(requireNonNull(trigger.getMetadata().get("replicas"))));
+    public TriggerResult process(KubernetesClient client, ScaledResource resource, KafkaPodAutoscaler autoscaler, Triggers trigger, int replicaCount) {
+        var replicas = Integer.parseInt(requireNonNull(trigger.getMetadata().get("replicas")));
+        return new TriggerResult(trigger, replicaCount, replicas);
     }
 }
