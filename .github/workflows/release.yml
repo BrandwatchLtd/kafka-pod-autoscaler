@@ -37,9 +37,14 @@ jobs:
         token: ${{ github.token }}
         branch: main
 
+    - id: get-repository-name
+      run: echo "::set-output name=name::${VAR,,}"
+      env:
+        VAR: ${{ github.repository }}
+
     - name: Build image to GHCR using jib
       run: mvn -B jib:build
-        -Djib.to.image=ghcr.io/${{ github.repository }}:${{ steps.semver.outputs.next }}
+        -Djib.to.image=ghcr.io/${{ steps.get-repository-name.outputs.name }}:${{ steps.semver.outputs.next }}
         -Djib.to.auth.username=${{ github.actor }}
         -Djib.to.auth.password=${{ github.token }}
 
