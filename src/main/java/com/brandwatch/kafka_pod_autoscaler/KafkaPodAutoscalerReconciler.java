@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.ServiceLoader;
@@ -12,7 +13,7 @@ import brandwatch.com.v1alpha1.KafkaPodAutoscaler;
 import brandwatch.com.v1alpha1.KafkaPodAutoscalerStatus;
 import brandwatch.com.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
 import brandwatch.com.v1alpha1.kafkapodautoscalerspec.Triggers;
-import brandwatch.com.v1alpha1.kafkapodautoscalerspec.triggers.Status;
+import brandwatch.com.v1alpha1.kafkapodautoscalerstatus.TriggerResults;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
@@ -80,11 +81,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
             .mapToInt(r -> {
                 var replicas = r.recommendedReplicas(currentReplicaCount);
 
-                var status = new Status();
-                status.setInputValue(r.inputValue());
-                status.setTargetThreshold(r.targetThreshold());
-                status.setRecommendedReplicas(replicas);
-                r.trigger().setStatus(status);
+                statusLogger.recordTriggerResult(r, replicas);
 
                 return replicas;
             })
@@ -198,6 +195,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
                     .orElse(null);
             status = Optional.ofNullable(kafkaPodAutoscaler.getStatus())
                     .orElseGet(KafkaPodAutoscalerStatus::new);
+            status.setTriggerResults(new ArrayList<>());
             kafkaPodAutoscaler.setStatus(status);
         }
 
@@ -205,6 +203,17 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
             logger.info("Setting status on autoscaler {} to: {}", name, message);
             status.setTimestamp(Instant.now().toString());
             status.setMessage(message);
+        }
+
+        public void recordTriggerResult(TriggerResult result, int recommendedReplicas) {
+            var triggerResults = new TriggerResults();
+            triggerResults.setType(result.trigger().getType());
+            triggerResults.setInputValue(result.inputValue());
+            triggerResults.setTargetThreshold(result.targetThreshold());
+            triggerResults.setRecommendedReplicas(recommendedReplicas);
+
+            status.getTriggerResults()
+                  .add(triggerResults);
         }
 
         public void recordPartitionCount(int partitionCount) {
