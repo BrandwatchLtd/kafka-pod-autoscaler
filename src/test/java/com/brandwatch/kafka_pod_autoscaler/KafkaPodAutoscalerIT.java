@@ -135,9 +135,6 @@ class KafkaPodAutoscalerIT {
         // Clean up the namespace
         client.namespaces().resource(new NamespaceBuilder().withNewMetadata().withName(namespace)
                                                            .endMetadata().build()).delete();
-        await()
-                .atMost(Duration.ofSeconds(60))
-                .untilAsserted(() -> assertThat(client.namespaces().withName(namespace).get()).isNull());
     }
 
     @Test
