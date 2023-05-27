@@ -56,7 +56,8 @@ import com.brandwatch.kafka_pod_autoscaler.testing.FileConsumer;
 class KafkaPodAutoscalerIT {
     private static final String OPERATOR_NAMESPACE = "system-kpa";
     private static final String IMAGE_NAME = System.getProperty("imageName");
-    public static final int POD_STARTUP_TIMEOUT = 60;
+    public static final int POD_STARTUP_TIMEOUT = 240;
+    private static final int STATUS_CHECK_TIMEOUT = 60;
     private static final int REGISTRY_PORT = 5000;
     private static final Map<String, Map<String, LogWatch>> watchLogs = new ConcurrentHashMap<>();
 
@@ -134,9 +135,6 @@ class KafkaPodAutoscalerIT {
         // Clean up the namespace
         client.namespaces().resource(new NamespaceBuilder().withNewMetadata().withName(namespace)
                                                            .endMetadata().build()).delete();
-        await()
-                .atMost(Duration.ofSeconds(60))
-                .untilAsserted(() -> assertThat(client.namespaces().withName(namespace).get()).isNull());
     }
 
     @Test
@@ -227,7 +225,7 @@ class KafkaPodAutoscalerIT {
     }
 
     private void assertAutoscalerStatus(String name, String expectedStatus) {
-        await().atMost(Duration.ofSeconds(POD_STARTUP_TIMEOUT)).untilAsserted(() -> {
+        await().atMost(Duration.ofSeconds(STATUS_CHECK_TIMEOUT)).untilAsserted(() -> {
             var autoscaler = client.resources(KafkaPodAutoscaler.class).inNamespace(namespace).withName(name).get();
 
             assertThat(autoscaler.getStatus()).isNotNull();

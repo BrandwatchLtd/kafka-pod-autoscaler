@@ -125,23 +125,26 @@ public class KafkaPodAutoscalerReconcilerTest {
         kpa.getSpec().setTriggers(List.of(
                 staticTrigger
         ));
-        var status = new KafkaPodAutoscalerReconciler.StatusLogger(kpa);
-        status.recordLastScale();
         when(deployment.getSpec().getReplicas()).thenReturn(1);
 
         var updateControl = reconciler.reconcile(kpa, mockContext);
+        verify(deploymentResource).scale(3);
 
-        verify(deploymentResource, never()).scale(anyInt());
-        assertThat(updateControl.getResource().getStatus().getMessage())
-                .isEqualTo("Deployment has been scaled recently. Skipping scale");
-        assertThat(updateControl.getResource().getStatus().getCurrentReplicaCount())
-                .isEqualTo(null);
-        assertThat(updateControl.getResource().getStatus().getPartitionCount())
-                .isEqualTo(null);
-        assertThat(updateControl.getResource().getStatus().getCalculatedReplicaCount())
-                .isEqualTo(null);
-        assertThat(updateControl.getResource().getStatus().getFinalReplicaCount())
-                .isEqualTo(null);
+        for (var i = 0; i < 5; i++) {
+            updateControl = reconciler.reconcile(kpa, mockContext);
+
+            verify(deploymentResource).scale(3);
+            assertThat(updateControl.getResource().getStatus().getMessage())
+                    .isEqualTo("Deployment has been scaled recently. Skipping scale");
+            assertThat(updateControl.getResource().getStatus().getCurrentReplicaCount())
+                    .isEqualTo(1);
+            assertThat(updateControl.getResource().getStatus().getPartitionCount())
+                    .isEqualTo(null);
+            assertThat(updateControl.getResource().getStatus().getCalculatedReplicaCount())
+                    .isEqualTo(3);
+            assertThat(updateControl.getResource().getStatus().getFinalReplicaCount())
+                    .isEqualTo(3);
+        }
     }
 
     @Test
