@@ -122,8 +122,8 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         return factories.stream()
                 .map(ServiceLoader.Provider::get)
                 .filter(factory -> factory.supports(client, namespace, scaleTargetRef))
-                .peek(factory -> logger.info("Found factory that supports {}: {} (only the first will be used)",
-                                             refToString(scaleTargetRef), factory))
+                .peek(factory -> logger.debug("Found factory that supports {}: {} (only the first will be used)",
+                                              refToString(scaleTargetRef), factory))
                 .findFirst()
                 .orElseGet(GenericScaledResourceFactory::new)
                 .create(client, namespace, scaleTargetRef);
@@ -156,8 +156,8 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         return processors.stream()
                          .map(ServiceLoader.Provider::get)
                          .filter(processor -> processor.getType().equals(type))
-                         .peek(processor -> logger.info("Found trigger processor that supports {}: {} (only the first will be used)",
-                                                        type, processor))
+                         .peek(processor -> logger.debug("Found trigger processor that supports {}: {} (only the first will be used)",
+                                                         type, processor))
                          .findFirst()
                          .orElseThrow(() -> new UnsupportedOperationException("Count not find trigger processor for type: " + type))
                          .process(client, scaledResource, autoscaler, trigger, replicaCount);
