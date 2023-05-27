@@ -32,6 +32,10 @@ spec:
               dryRun:
                 type: boolean
                 default: false
+              cooloffSeconds:
+                type: integer
+                format: int32
+                default: 300
               scaleTargetRef:
                 type: object
                 required:
@@ -63,6 +67,18 @@ spec:
                       type: object
                       additionalProperties:
                         type: string
+                    status:
+                      type: object
+                      properties:
+                        inputValue:
+                          type: number
+                          format: double
+                        targetThreshold:
+                          type: number
+                          format: double
+                        recommendedReplicas:
+                          type: integer
+                          format: int32
           status:
             type: object
             properties:
@@ -73,24 +89,14 @@ spec:
                 example: "2021-01-30T08:30:00Z"
               message:
                 type: string
-              triggerResults:
-                type: array
-                nullable: false
-                default: []
-                items:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    inputValue:
-                      type: number
-                      format: double
-                    targetThreshold:
-                      type: number
-                      format: double
-                    recommendedReplicas:
-                      type: integer
-                      format: int32
+              lastScale:
+                type: string
+                format: date-time
+                description: The date and time that this message was added
+                example: "2021-01-30T08:30:00Z"
+              dryRunReplicas:
+                type: integer
+                format: int32
               partitionCount:
                 type: integer
                 format: int32

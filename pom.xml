@@ -39,6 +39,13 @@
         <scope>import</scope>
       </dependency>
       <dependency>
+        <groupId>io.micrometer</groupId>
+        <artifactId>micrometer-bom</artifactId>
+        <version>1.11.0</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
         <groupId>org.junit</groupId>
         <artifactId>junit-bom</artifactId>
         <version>5.9.3</version>
@@ -98,7 +105,15 @@
     </dependency>
     <dependency>
       <groupId>io.javaoperatorsdk</groupId>
+      <artifactId>micrometer-support</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.javaoperatorsdk</groupId>
       <artifactId>operator-framework</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.kafka</groupId>
