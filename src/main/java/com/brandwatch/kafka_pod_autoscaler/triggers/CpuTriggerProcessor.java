@@ -23,12 +23,15 @@ public class CpuTriggerProcessor implements TriggerProcessor {
     public TriggerResult process(KubernetesClient client, ScaledResource resource, KafkaPodAutoscaler autoscaler, Triggers trigger, int replicaCount) {
         var threshold = Double.parseDouble(requireNonNull(trigger.getMetadata().get("threshold")));
         var cpu = resource.pods().stream()
-                .map(pod -> client.top().pods().metrics(pod.getMetadata().getNamespace(), pod.getMetadata().getName()))
-                .flatMap(m -> m.getContainers().stream())
-                .mapToDouble(c -> c.getUsage().get("cpu").getNumericalAmount().doubleValue())
-                .average()
-                .orElse(0);
+            .map(pod -> client.top().pods().metrics(pod.getMetadata().getNamespace(), pod.getMetadata().getName()))
+            .flatMap(m -> m.getContainers().stream())
+            .mapToDouble(c -> c.getUsage().get("cpu").getNumericalAmount().doubleValue())
+            .sum();
+        var cpuRequest = resource.pods().stream()
+                          .flatMap(pod -> pod.getSpec().getContainers().stream().map(c -> c.getResources().getRequests()))
+                          .mapToDouble(c -> c.get("cpu").getNumericalAmount().doubleValue())
+                          .sum();
 
-        return new TriggerResult(trigger, cpu, threshold);
+        return new TriggerResult(trigger, (cpu / cpuRequest) * 100, threshold);
     }
 }
