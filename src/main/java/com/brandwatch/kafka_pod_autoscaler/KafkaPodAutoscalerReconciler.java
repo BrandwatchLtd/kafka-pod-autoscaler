@@ -43,18 +43,21 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
                                          kafkaPodAutoscaler.getSpec().getScaleTargetRef());
 
         if (resource == null) {
+            statusLogger.clearStatus();
             statusLogger.log(targetKind + " not found. Skipping scale");
             return UpdateControl.patchStatus(kafkaPodAutoscaler)
                                 .rescheduleAfter(Duration.ofSeconds(10));
         }
 
         if (!resource.isReady()) {
+            statusLogger.clearStatus();
             statusLogger.log(targetKind + " is not ready. Skipping scale");
             return UpdateControl.patchStatus(kafkaPodAutoscaler)
                                 .rescheduleAfter(Duration.ofSeconds(10));
         }
 
         if (resource.getReplicaCount() == 0) {
+            statusLogger.clearStatus();
             statusLogger.log(targetKind + " has been scaled to zero. Skipping scale");
             return UpdateControl.patchStatus(kafkaPodAutoscaler)
                                 .rescheduleAfter(Duration.ofSeconds(10));
@@ -179,19 +182,22 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
     static class StatusLogger {
         private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ISO_DATE_TIME;
 
+        private final KafkaPodAutoscaler kafkaPodAutoscaler;
         private final String name;
         @Getter
         private final Instant lastScale;
         private final KafkaPodAutoscalerStatus status;
 
         public StatusLogger(KafkaPodAutoscaler kafkaPodAutoscaler) {
+            this.kafkaPodAutoscaler = kafkaPodAutoscaler;
             name = kafkaPodAutoscaler.getMetadata().getName();
             lastScale = Optional.ofNullable(kafkaPodAutoscaler.getStatus())
                     .map(KafkaPodAutoscalerStatus::getLastScale)
                     .map(DATE_TIME_FORMATTER::parse)
                     .map(Instant::from)
                     .orElse(null);
-            status = new KafkaPodAutoscalerStatus();
+            status = Optional.ofNullable(kafkaPodAutoscaler.getStatus())
+                    .orElseGet(KafkaPodAutoscalerStatus::new);
             kafkaPodAutoscaler.setStatus(status);
         }
 
@@ -223,6 +229,18 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
 
         public void recordLastScale() {
             status.setLastScale(DATE_TIME_FORMATTER.format(Instant.now().atZone(ZoneOffset.UTC)));
+        }
+
+        public void clearStatus() {
+            status.setLastScale(null);
+            status.setDryRunReplicas(null);
+            status.setPartitionCount(null);
+            status.setFinalReplicaCount(null);
+            status.setCurrentReplicaCount(null);
+            status.setCalculatedReplicaCount(null);
+            status.setCalculatedReplicaCount(null);
+            status.setMessage(null);
+            status.setTimestamp(null);
         }
     }
 }
