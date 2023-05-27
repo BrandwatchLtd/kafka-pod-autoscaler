@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.ServiceLoader;
@@ -200,9 +201,13 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         }
 
         public void log(String message) {
-            logger.info("Setting status on autoscaler {} to: {}", name, message);
+            var lastMessage = status.getMessage();
+
             status.setTimestamp(Instant.now().toString());
-            status.setMessage(message);
+            if (!Objects.equals(lastMessage, message)) {
+                logger.info("Setting status on autoscaler {} to: {}", name, message);
+                status.setMessage(message);
+            }
         }
 
         public void recordTriggerResult(TriggerResult result, int recommendedReplicas) {
