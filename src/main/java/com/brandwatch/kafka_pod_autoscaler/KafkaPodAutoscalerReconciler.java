@@ -27,6 +27,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
+import com.brandwatch.kafka_pod_autoscaler.metrics.ScalerMetrics;
 import com.brandwatch.kafka_pod_autoscaler.scaledresources.GenericScaledResourceFactory;
 import com.brandwatch.kafka_pod_autoscaler.triggers.TriggerProcessor;
 import com.brandwatch.kafka_pod_autoscaler.triggers.TriggerResult;
@@ -189,6 +190,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         @Getter
         private final Instant lastScale;
         private final KafkaPodAutoscalerStatus status;
+        private final ScalerMetrics scalerMetrics;
 
         public StatusLogger(KubernetesClient client, KafkaPodAutoscaler kafkaPodAutoscaler) {
             this.client = client;
@@ -201,6 +203,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
                     .orElse(null);
             status = Optional.ofNullable(kafkaPodAutoscaler.getStatus())
                     .orElseGet(KafkaPodAutoscalerStatus::new);
+            this.scalerMetrics = ScalerMetrics.getOrCreate(kafkaPodAutoscaler.getMetadata().getNamespace(), name);
             status.setTriggerResults(new ArrayList<>());
             kafkaPodAutoscaler.setStatus(status);
         }
@@ -243,26 +246,32 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         }
 
         public void recordPartitionCount(int partitionCount) {
+            scalerMetrics.setPartitionCount(partitionCount);
             status.setPartitionCount(partitionCount);
         }
 
         public void recordCurrentReplicaCount(int currentReplicaCount) {
+            scalerMetrics.setCurrentReplicaCount(currentReplicaCount);
             status.setCurrentReplicaCount(currentReplicaCount);
         }
 
         public void recordCalculatedReplicaCount(int calculatedReplicaCount) {
+            scalerMetrics.setCalculatedReplicaCount(calculatedReplicaCount);
             status.setCalculatedReplicaCount(calculatedReplicaCount);
         }
 
         public void recordFinalReplicaCount(int finalReplicaCount) {
+            scalerMetrics.setFinalReplicaCount(finalReplicaCount);
             status.setFinalReplicaCount(finalReplicaCount);
         }
 
         public void setDryRunReplicas(Integer dryRunReplicas) {
+            scalerMetrics.setDryRunReplicas(dryRunReplicas);
             status.setDryRunReplicas(dryRunReplicas);
         }
 
         public void recordLastScale() {
+            scalerMetrics.setLastScale(Instant.now().toEpochMilli());
             status.setLastScale(DATE_TIME_FORMATTER.format(Instant.now().atZone(ZoneOffset.UTC)));
         }
 
