@@ -15,6 +15,9 @@ import brandwatch.com.v1alpha1.KafkaPodAutoscalerStatus;
 import brandwatch.com.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
 import brandwatch.com.v1alpha1.kafkapodautoscalerspec.Triggers;
 import brandwatch.com.v1alpha1.kafkapodautoscalerstatus.TriggerResults;
+import io.fabric8.kubernetes.api.model.EventBuilder;
+import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
+import io.fabric8.kubernetes.api.model.ObjectReferenceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
@@ -40,7 +43,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
     @Override
     public UpdateControl<KafkaPodAutoscaler> reconcile(KafkaPodAutoscaler kafkaPodAutoscaler, Context<KafkaPodAutoscaler> context) {
         var targetKind = kafkaPodAutoscaler.getSpec().getScaleTargetRef().getKind();
-        var statusLogger = new StatusLogger(kafkaPodAutoscaler);
+        var statusLogger = new StatusLogger(context.getClient(), kafkaPodAutoscaler);
         var resource = getScaledResource(context.getClient(), kafkaPodAutoscaler.getMetadata().getNamespace(),
                                          kafkaPodAutoscaler.getSpec().getScaleTargetRef());
 
@@ -180,13 +183,15 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
     static class StatusLogger {
         private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ISO_DATE_TIME;
 
+        private final KubernetesClient client;
         private final KafkaPodAutoscaler kafkaPodAutoscaler;
         private final String name;
         @Getter
         private final Instant lastScale;
         private final KafkaPodAutoscalerStatus status;
 
-        public StatusLogger(KafkaPodAutoscaler kafkaPodAutoscaler) {
+        public StatusLogger(KubernetesClient client, KafkaPodAutoscaler kafkaPodAutoscaler) {
+            this.client = client;
             this.kafkaPodAutoscaler = kafkaPodAutoscaler;
             name = kafkaPodAutoscaler.getMetadata().getName();
             lastScale = Optional.ofNullable(kafkaPodAutoscaler.getStatus())
@@ -207,6 +212,22 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
             if (!Objects.equals(lastMessage, message)) {
                 logger.info("Setting status on autoscaler {} to: {}", name, message);
                 status.setMessage(message);
+
+                var event = new EventBuilder()
+                        .withMetadata(new ObjectMetaBuilder()
+                                              .withName("ScaleLog")
+                                              .withNamespace(kafkaPodAutoscaler.getMetadata().getNamespace())
+                                              .build())
+                        .withType("Info")
+                        .withMessage(message)
+                        .withInvolvedObject(new ObjectReferenceBuilder()
+                                                    .withKind(kafkaPodAutoscaler.getKind())
+                                                    .withName(kafkaPodAutoscaler.getMetadata().getName())
+                                                    .withNamespace(kafkaPodAutoscaler.getMetadata().getNamespace())
+                                                    .build())
+                        .build();
+
+                client.v1().events().resource(event).create();
             }
         }
 
