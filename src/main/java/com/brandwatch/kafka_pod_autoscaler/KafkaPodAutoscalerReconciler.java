@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.ServiceLoader;
@@ -14,6 +15,9 @@ import brandwatch.com.v1alpha1.KafkaPodAutoscalerStatus;
 import brandwatch.com.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
 import brandwatch.com.v1alpha1.kafkapodautoscalerspec.Triggers;
 import brandwatch.com.v1alpha1.kafkapodautoscalerstatus.TriggerResults;
+import io.fabric8.kubernetes.api.model.EventBuilder;
+import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
+import io.fabric8.kubernetes.api.model.ObjectReferenceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
@@ -23,6 +27,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
+import com.brandwatch.kafka_pod_autoscaler.metrics.ScalerMetrics;
 import com.brandwatch.kafka_pod_autoscaler.scaledresources.GenericScaledResourceFactory;
 import com.brandwatch.kafka_pod_autoscaler.triggers.TriggerProcessor;
 import com.brandwatch.kafka_pod_autoscaler.triggers.TriggerResult;
@@ -39,7 +44,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
     @Override
     public UpdateControl<KafkaPodAutoscaler> reconcile(KafkaPodAutoscaler kafkaPodAutoscaler, Context<KafkaPodAutoscaler> context) {
         var targetKind = kafkaPodAutoscaler.getSpec().getScaleTargetRef().getKind();
-        var statusLogger = new StatusLogger(kafkaPodAutoscaler);
+        var statusLogger = new StatusLogger(context.getClient(), kafkaPodAutoscaler);
         var resource = getScaledResource(context.getClient(), kafkaPodAutoscaler.getMetadata().getNamespace(),
                                          kafkaPodAutoscaler.getSpec().getScaleTargetRef());
 
@@ -179,13 +184,16 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
     static class StatusLogger {
         private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ISO_DATE_TIME;
 
+        private final KubernetesClient client;
         private final KafkaPodAutoscaler kafkaPodAutoscaler;
         private final String name;
         @Getter
         private final Instant lastScale;
         private final KafkaPodAutoscalerStatus status;
+        private final ScalerMetrics scalerMetrics;
 
-        public StatusLogger(KafkaPodAutoscaler kafkaPodAutoscaler) {
+        public StatusLogger(KubernetesClient client, KafkaPodAutoscaler kafkaPodAutoscaler) {
+            this.client = client;
             this.kafkaPodAutoscaler = kafkaPodAutoscaler;
             name = kafkaPodAutoscaler.getMetadata().getName();
             lastScale = Optional.ofNullable(kafkaPodAutoscaler.getStatus())
@@ -195,14 +203,35 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
                     .orElse(null);
             status = Optional.ofNullable(kafkaPodAutoscaler.getStatus())
                     .orElseGet(KafkaPodAutoscalerStatus::new);
+            this.scalerMetrics = ScalerMetrics.getOrCreate(kafkaPodAutoscaler.getMetadata().getNamespace(), name);
             status.setTriggerResults(new ArrayList<>());
             kafkaPodAutoscaler.setStatus(status);
         }
 
         public void log(String message) {
-            logger.info("Setting status on autoscaler {} to: {}", name, message);
+            var lastMessage = status.getMessage();
+
             status.setTimestamp(Instant.now().toString());
-            status.setMessage(message);
+            if (!Objects.equals(lastMessage, message)) {
+                logger.info("Setting status on autoscaler {} to: {}", name, message);
+                status.setMessage(message);
+
+                var event = new EventBuilder()
+                        .withMetadata(new ObjectMetaBuilder()
+                                              .withName("ScaleLog")
+                                              .withNamespace(kafkaPodAutoscaler.getMetadata().getNamespace())
+                                              .build())
+                        .withType("Info")
+                        .withMessage(message)
+                        .withInvolvedObject(new ObjectReferenceBuilder()
+                                                    .withKind(kafkaPodAutoscaler.getKind())
+                                                    .withName(kafkaPodAutoscaler.getMetadata().getName())
+                                                    .withNamespace(kafkaPodAutoscaler.getMetadata().getNamespace())
+                                                    .build())
+                        .build();
+
+                client.v1().events().resource(event).create();
+            }
         }
 
         public void recordTriggerResult(TriggerResult result, int recommendedReplicas) {
@@ -217,26 +246,32 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         }
 
         public void recordPartitionCount(int partitionCount) {
+            scalerMetrics.setPartitionCount(partitionCount);
             status.setPartitionCount(partitionCount);
         }
 
         public void recordCurrentReplicaCount(int currentReplicaCount) {
+            scalerMetrics.setCurrentReplicaCount(currentReplicaCount);
             status.setCurrentReplicaCount(currentReplicaCount);
         }
 
         public void recordCalculatedReplicaCount(int calculatedReplicaCount) {
+            scalerMetrics.setCalculatedReplicaCount(calculatedReplicaCount);
             status.setCalculatedReplicaCount(calculatedReplicaCount);
         }
 
         public void recordFinalReplicaCount(int finalReplicaCount) {
+            scalerMetrics.setFinalReplicaCount(finalReplicaCount);
             status.setFinalReplicaCount(finalReplicaCount);
         }
 
         public void setDryRunReplicas(Integer dryRunReplicas) {
+            scalerMetrics.setDryRunReplicas(dryRunReplicas);
             status.setDryRunReplicas(dryRunReplicas);
         }
 
         public void recordLastScale() {
+            scalerMetrics.setLastScale(Instant.now().toEpochMilli());
             status.setLastScale(DATE_TIME_FORMATTER.format(Instant.now().atZone(ZoneOffset.UTC)));
         }
 

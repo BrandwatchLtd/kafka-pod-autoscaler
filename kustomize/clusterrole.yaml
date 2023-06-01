@@ -43,3 +43,9 @@ rules:
       - daemonsets/scale
     verbs:
       - '*'
+  - apiGroups:
+      - '*'
+    resources:
+      - events
+    verbs:
+      - create
