@@ -96,10 +96,8 @@ spec:
                       type: string
                     inputValue:
                       type: number
-                      format: double
                     targetThreshold:
                       type: number
-                      format: double
                     recommendedReplicas:
                       type: integer
                       format: int32

@@ -226,7 +226,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
                         .withReason("ScaleDecision")
                         .withInvolvedObject(new ObjectReferenceBuilder()
                                                     .withKind(kafkaPodAutoscaler.getKind())
-                                                    .withName(kafkaPodAutoscaler.getMetadata().getName())
+                                                    .withName(name)
                                                     .withNamespace(kafkaPodAutoscaler.getMetadata().getNamespace())
                                                     .build())
                         .build();
