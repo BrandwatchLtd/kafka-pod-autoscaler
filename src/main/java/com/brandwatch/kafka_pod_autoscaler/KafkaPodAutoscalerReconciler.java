@@ -218,11 +218,12 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
 
                 var event = new EventBuilder()
                         .withMetadata(new ObjectMetaBuilder()
-                                              .withName("ScaleLog")
+                                              .withName(name + "." + System.currentTimeMillis())
                                               .withNamespace(kafkaPodAutoscaler.getMetadata().getNamespace())
                                               .build())
                         .withType("Info")
                         .withMessage(message)
+                        .withReason("ScaleDecision")
                         .withInvolvedObject(new ObjectReferenceBuilder()
                                                     .withKind(kafkaPodAutoscaler.getKind())
                                                     .withName(kafkaPodAutoscaler.getMetadata().getName())
