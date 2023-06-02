@@ -52,7 +52,7 @@ import lombok.extern.slf4j.Slf4j;
 import com.brandwatch.kafka_pod_autoscaler.testing.FileConsumer;
 
 @Slf4j
-@Testcontainers
+@Testcontainers(parallel = true)
 class KafkaPodAutoscalerIT {
     private static final String OPERATOR_NAMESPACE = "system-kpa";
     private static final String IMAGE_NAME = System.getProperty("imageName");
