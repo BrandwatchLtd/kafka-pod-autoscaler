@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Tags;
+import lombok.NonNull;
 
 public class ScalerMetrics {
     private static final Map<String, ScalerMetrics> metrics = new ConcurrentHashMap<>();
@@ -18,7 +19,7 @@ public class ScalerMetrics {
     private final AtomicInteger dryRunReplicas;
     private final AtomicLong lastScale;
 
-    public ScalerMetrics(String namespace, String name) {
+    public ScalerMetrics(@NonNull String namespace, @NonNull String name) {
         var tags = Tags.of("kpa-namespace", namespace, "kpa-name", name);
         partitionCount = Metrics.gauge("kpa_partition_count", tags, new AtomicInteger());
         currentReplicaCount = Metrics.gauge("kpa_current_replica_count", tags, new AtomicInteger());

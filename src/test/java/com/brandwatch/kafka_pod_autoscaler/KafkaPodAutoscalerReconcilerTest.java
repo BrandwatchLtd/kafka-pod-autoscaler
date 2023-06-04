@@ -67,6 +67,7 @@ public class KafkaPodAutoscalerReconcilerTest {
         lenient().when(deployment.getSpec().getReplicas()).thenReturn(1);
 
         var metadata = new ObjectMeta();
+        metadata.setName("kpa");
         metadata.setNamespace(NAMESPACE);
         var scaleTargetRef = new ScaleTargetRef();
         scaleTargetRef.setKind("Deployment");
