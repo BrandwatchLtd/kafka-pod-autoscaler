@@ -95,9 +95,9 @@ spec:
                     type:
                       type: string
                     inputValue:
-                      type: number
+                      type: integer
                     targetThreshold:
-                      type: number
+                      type: integer
                     recommendedReplicas:
                       type: integer
                       format: int32

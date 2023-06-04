@@ -287,7 +287,7 @@ public class KafkaPodAutoscalerReconcilerTest {
         }
     }
 
-    private static TriggerResults createTriggerResultDTO(String type, double inputValue, double targetThreshold, int recommendedReplicas) {
+    private static TriggerResults createTriggerResultDTO(String type, long inputValue, long targetThreshold, int recommendedReplicas) {
         var triggerResults = new TriggerResults();
 
         triggerResults.setType(type);
