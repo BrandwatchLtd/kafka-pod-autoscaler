@@ -10,17 +10,22 @@ import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Tags;
 import lombok.NonNull;
 
+import com.brandwatch.kafka_pod_autoscaler.triggers.TriggerResult;
+
 public class ScalerMetrics {
     private static final Map<String, ScalerMetrics> metrics = new ConcurrentHashMap<>();
+    private final Tags tags;
     private final AtomicInteger partitionCount;
     private final AtomicInteger currentReplicaCount;
     private final AtomicInteger calculatedReplicaCount;
     private final AtomicInteger finalReplicaCount;
     private final AtomicInteger dryRunReplicas;
     private final AtomicLong lastScale;
+    private final Map<String, AtomicLong> triggerValueMetrics = new ConcurrentHashMap<>();
+    private final Map<String, AtomicLong> triggerThresholdMetrics = new ConcurrentHashMap<>();
 
     public ScalerMetrics(@NonNull String namespace, @NonNull String name) {
-        var tags = Tags.of("kpa-namespace", namespace, "kpa-name", name);
+        tags = Tags.of("kpa-namespace", namespace, "kpa-name", name);
         partitionCount = Metrics.gauge("kpa_partition_count", tags, new AtomicInteger());
         currentReplicaCount = Metrics.gauge("kpa_current_replica_count", tags, new AtomicInteger());
         calculatedReplicaCount = Metrics.gauge("kpa_calculated_replica_count", tags, new AtomicInteger());
@@ -56,5 +61,20 @@ public class ScalerMetrics {
 
     public void setLastScale(long lastScale) {
         this.lastScale.set(lastScale);
+    }
+
+    public void setTriggerMetrics(TriggerResult result) {
+        triggerValueMetrics.computeIfAbsent(result.trigger().getType(),
+                                            type -> {
+                                                var typeTags = tags.and("type", type);
+                                                return Metrics.gauge("kpa_trigger_value", typeTags, new AtomicLong());
+                                            })
+                           .set(result.inputValue());
+        triggerThresholdMetrics.computeIfAbsent(result.trigger().getType(),
+                                                type -> {
+                                                    var typeTags = tags.and("type", type);
+                                                    return Metrics.gauge("kpa_trigger_threshold", typeTags, new AtomicLong());
+                                                })
+                               .set(result.targetThreshold());
     }
 }

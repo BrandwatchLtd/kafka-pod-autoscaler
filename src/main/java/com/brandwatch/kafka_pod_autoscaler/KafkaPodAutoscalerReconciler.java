@@ -247,6 +247,8 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
 
             status.getTriggerResults()
                   .add(triggerResults);
+
+            scalerMetrics.setTriggerMetrics(result);
         }
 
         public void recordPartitionCount(int partitionCount) {
