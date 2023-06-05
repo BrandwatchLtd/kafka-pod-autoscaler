@@ -1,6 +1,7 @@
 package com.brandwatch.kafka_pod_autoscaler;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -23,11 +24,13 @@ import brandwatch.com.v1alpha1.KafkaPodAutoscalerSpec;
 import brandwatch.com.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
 import brandwatch.com.v1alpha1.kafkapodautoscalerspec.Triggers;
 import brandwatch.com.v1alpha1.kafkapodautoscalerstatus.TriggerResults;
+import io.fabric8.kubernetes.api.model.Event;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.NonNamespaceOperation;
+import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.kubernetes.client.dsl.RollableScalableResource;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
@@ -66,7 +69,12 @@ public class KafkaPodAutoscalerReconcilerTest {
 
         lenient().when(deployment.getSpec().getReplicas()).thenReturn(1);
 
+        @SuppressWarnings("unchecked")
+        var resourceEvent = (Resource<Event>) mock(Resource.class);
+        when(client.v1().events().resource(any())).thenReturn(resourceEvent);
+
         var metadata = new ObjectMeta();
+        metadata.setName("kpa");
         metadata.setNamespace(NAMESPACE);
         var scaleTargetRef = new ScaleTargetRef();
         scaleTargetRef.setKind("Deployment");
@@ -287,7 +295,7 @@ public class KafkaPodAutoscalerReconcilerTest {
         }
     }
 
-    private static TriggerResults createTriggerResultDTO(String type, double inputValue, double targetThreshold, int recommendedReplicas) {
+    private static TriggerResults createTriggerResultDTO(String type, long inputValue, long targetThreshold, int recommendedReplicas) {
         var triggerResults = new TriggerResults();
 
         triggerResults.setType(type);

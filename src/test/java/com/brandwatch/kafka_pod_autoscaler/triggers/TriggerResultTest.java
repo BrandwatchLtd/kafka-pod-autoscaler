@@ -11,7 +11,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 class TriggerResultTest {
     @ParameterizedTest
     @MethodSource
-    public void recommendedReplicas(double inputValue, double targetThreshold, int currentReplicaCount, int expectedReplicaCount) {
+    public void recommendedReplicas(long inputValue, long targetThreshold, int currentReplicaCount, int expectedReplicaCount) {
         var result = new TriggerResult(null, inputValue, targetThreshold).recommendedReplicas(currentReplicaCount);
 
         assertThat(result).isEqualTo(expectedReplicaCount);

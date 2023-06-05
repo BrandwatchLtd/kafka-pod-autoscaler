@@ -51,7 +51,7 @@ public class PrometheusTriggerProcessor implements TriggerProcessor {
         var serverAddress = requireNonNull(trigger.getMetadata().get("serverAddress"));
         var query = requireNonNull(trigger.getMetadata().get("query"));
         var type = requireNonNull(trigger.getMetadata().get("type"));
-        var threshold = Double.parseDouble(requireNonNull(trigger.getMetadata().get("threshold")));
+        var threshold = Long.parseLong(requireNonNull(trigger.getMetadata().get("threshold")));
         var uri = buildMetricsUri(serverAddress, query,autoscaler.getSpec().getScaleTargetRef().getName());
         var request = HttpRequest.newBuilder()
                                  .uri(uri)
@@ -62,7 +62,7 @@ public class PrometheusTriggerProcessor implements TriggerProcessor {
             var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             var json = MAPPER.readValue(response.body(), QueryResponse.class);
 
-            var value = Double.parseDouble((String) json.data().result()[0].value()[1]);
+            var value = Long.parseLong((String) json.data().result()[0].value()[1]);
 
             if (type.equals("Total")) {
                 value /= replicaCount;
