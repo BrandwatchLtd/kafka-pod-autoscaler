@@ -35,6 +35,10 @@ public class DeploymentScaledResource implements ScaledResource {
 
     @Override
     public List<Pod> pods() {
-        return client.pods().withLabelSelector(deployment.get().getSpec().getSelector()).list().getItems();
+        return client.pods()
+                     .inNamespace(deployment.get().getMetadata().getNamespace())
+                     .withLabelSelector(deployment.get().getSpec().getSelector())
+                     .list()
+                     .getItems();
     }
 }
