@@ -32,6 +32,9 @@ public class CpuTriggerProcessor implements TriggerProcessor {
                           .mapToDouble(c -> c.get("cpu").getNumericalAmount().doubleValue())
                           .sum();
 
-        return new TriggerResult(trigger, (long) Math.ceil((cpu / cpuRequest) * 100), threshold);
+        var cpuPercent = (long) Math.ceil((cpu / cpuRequest) * 100);
+        logger.debug("Calculating CPU trigger with values: cpu={}, cpuRequest={}, cpuPercent={}, threshold={}",
+                     cpu, cpuRequest, cpuPercent, threshold);
+        return new TriggerResult(trigger, cpuPercent, threshold);
     }
 }

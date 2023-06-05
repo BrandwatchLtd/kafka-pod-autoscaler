@@ -10,7 +10,6 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,11 +37,9 @@ import brandwatch.com.v1alpha1.KafkaPodAutoscaler;
 import brandwatch.com.v1alpha1.KafkaPodAutoscalerSpec;
 import brandwatch.com.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
-import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
@@ -50,6 +47,7 @@ import io.fabric8.kubernetes.client.dsl.LogWatch;
 import lombok.extern.slf4j.Slf4j;
 
 import com.brandwatch.kafka_pod_autoscaler.testing.FileConsumer;
+import com.brandwatch.kafka_pod_autoscaler.testing.KustomizeHelper;
 
 @Slf4j
 @Testcontainers(parallel = true)
@@ -234,36 +232,12 @@ class KafkaPodAutoscalerIT {
     }
 
     private static void deployOperator() throws IOException, InterruptedException {
-        applyKustomize("src/test/resources/operator", OPERATOR_NAMESPACE);
+        KustomizeHelper.applyKustomize(client, "src/test/resources/operator", OPERATOR_NAMESPACE);
 
         waitForPodsWithLabel(OPERATOR_NAMESPACE, "app", "kafka-pod-autoscaler", 1);
     }
 
     void applyKustomize(String path) throws IOException, InterruptedException {
-        applyKustomize(path, namespace);
-    }
-
-    static void applyKustomize(String path, String namespace) throws IOException, InterruptedException {
-        var process = Runtime.getRuntime().exec("kustomize build " + path);
-
-        try (var yamlStream = process.getInputStream()) {
-            List<HasMetadata> resources = client.load(yamlStream).items();
-            resources.forEach(hm -> {
-                hm.getMetadata().setNamespace(namespace);
-                if (hm.getKind().toLowerCase(Locale.ROOT).equals("clusterrolebinding")) {
-                    var crb = (ClusterRoleBinding) hm;
-                    for (var subject : crb.getSubjects()) {
-                        subject.setNamespace(namespace);
-                    }
-                }
-            });
-            client.resourceList(resources)
-                  .inNamespace(namespace)
-                  .serverSideApply();
-        }
-        if (process.waitFor() != 0) {
-            process.getErrorStream().transferTo(System.out);
-            throw new RuntimeException("Kustomize exited with status " + process.exitValue());
-        }
+        KustomizeHelper.applyKustomize(client, path, namespace);
     }
 }

@@ -35,6 +35,10 @@ public class StatefulSetScaledResource implements ScaledResource {
 
     @Override
     public List<Pod> pods() {
-        return client.pods().withLabelSelector(resource.get().getSpec().getSelector()).list().getItems();
+        return client.pods()
+                     .inNamespace(resource.get().getMetadata().getNamespace())
+                     .withLabelSelector(resource.get().getSpec().getSelector())
+                     .list()
+                     .getItems();
     }
 }
