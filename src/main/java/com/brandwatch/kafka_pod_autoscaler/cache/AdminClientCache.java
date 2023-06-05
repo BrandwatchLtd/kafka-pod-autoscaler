@@ -13,7 +13,7 @@ import com.github.benmanes.caffeine.cache.RemovalListener;
 
 public class AdminClientCache {
     private static final Cache<String, AdminClient> adminClientCache = Caffeine.newBuilder()
-           .expireAfterWrite(Duration.ofMinutes(10))
+           .expireAfterAccess(Duration.ofMinutes(10))
            .removalListener((RemovalListener<String, AdminClient>) (key, value, cause) -> {
                if (value != null) {
                    value.close();
