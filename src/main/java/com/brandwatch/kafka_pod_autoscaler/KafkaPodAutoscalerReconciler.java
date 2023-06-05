@@ -179,7 +179,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
             }
             return i;
         }
-        return partitionCount;
+        return Math.max(partitionCount, 1);
     }
 
     static class StatusLogger {
