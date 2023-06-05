@@ -81,6 +81,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
                           .orElse(resource.getReplicaCount())
                 : resource.getReplicaCount();
 
+        statusLogger.clearTriggerResults();
         var calculatedReplicaCount = kafkaPodAutoscaler.getSpec().getTriggers().stream()
             .map(trigger -> calculateTriggerResult(context.getClient(), resource, kafkaPodAutoscaler, trigger, currentReplicaCount))
             .mapToInt(r -> {
@@ -204,7 +205,9 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
             status = Optional.ofNullable(kafkaPodAutoscaler.getStatus())
                     .orElseGet(KafkaPodAutoscalerStatus::new);
             this.scalerMetrics = ScalerMetrics.getOrCreate(kafkaPodAutoscaler.getMetadata().getNamespace(), name);
-            status.setTriggerResults(new ArrayList<>());
+            if (status.getTriggerResults() == null) {
+                status.setTriggerResults(new ArrayList<>());
+            }
             kafkaPodAutoscaler.setStatus(status);
         }
 
@@ -286,6 +289,10 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
             status.setCalculatedReplicaCount(null);
             status.setMessage(null);
             status.setTimestamp(null);
+        }
+
+        public void clearTriggerResults() {
+            status.setTriggerResults(new ArrayList<>());
         }
     }
 }
