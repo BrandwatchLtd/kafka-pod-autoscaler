@@ -23,6 +23,7 @@ public class ScalerMetrics {
     private final AtomicLong lastScale;
     private final Map<String, AtomicLong> triggerValueMetrics = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> triggerThresholdMetrics = new ConcurrentHashMap<>();
+    private final Map<String, AtomicLong> triggerReplicaMetrics = new ConcurrentHashMap<>();
 
     public ScalerMetrics(@NonNull String namespace, @NonNull String name) {
         tags = Tags.of("kpa-namespace", namespace, "kpa-name", name);
@@ -63,7 +64,7 @@ public class ScalerMetrics {
         this.lastScale.set(lastScale);
     }
 
-    public void setTriggerMetrics(TriggerResult result) {
+    public void setTriggerMetrics(TriggerResult result, int recommendedReplicas) {
         triggerValueMetrics.computeIfAbsent(result.trigger().getType(),
                                             type -> {
                                                 var typeTags = tags.and("type", type);
@@ -76,5 +77,11 @@ public class ScalerMetrics {
                                                     return Metrics.gauge("kpa_trigger_threshold", typeTags, new AtomicLong());
                                                 })
                                .set(result.targetThreshold());
+        triggerReplicaMetrics.computeIfAbsent(result.trigger().getType(),
+                                                type -> {
+                                                    var typeTags = tags.and("type", type);
+                                                    return Metrics.gauge("kpa_trigger_replicas", typeTags, new AtomicLong());
+                                                })
+                               .set(result.recommendedReplicas(recommendedReplicas));
     }
 }
