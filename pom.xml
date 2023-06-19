@@ -17,8 +17,8 @@
     <skipIntegrationTests>false</skipIntegrationTests>
 
     <auto-service.version>1.1.0</auto-service.version>
-    <fabric8-client.version>6.6.1</fabric8-client.version>
-    <lombok.version>1.18.26</lombok.version>
+    <fabric8-client.version>6.7.0</fabric8-client.version>
+    <lombok.version>1.18.28</lombok.version>
     <slf4j.version>2.0.7</slf4j.version>
   </properties>
 
@@ -27,7 +27,7 @@
       <dependency>
         <groupId>com.fasterxml.jackson</groupId>
         <artifactId>jackson-bom</artifactId>
-        <version>2.14.2</version>
+        <version>2.15.2</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -55,7 +55,7 @@
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-bom</artifactId>
-        <version>5.2.0</version>
+        <version>5.3.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -372,7 +372,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
-        <version>3.3.0</version>
+        <version>3.4.0</version>
         <executions>
           <execution>
             <goals>
