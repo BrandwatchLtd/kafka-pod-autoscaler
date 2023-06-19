@@ -16,6 +16,7 @@ import brandwatch.com.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
 import brandwatch.com.v1alpha1.kafkapodautoscalerspec.Triggers;
 import brandwatch.com.v1alpha1.kafkapodautoscalerstatus.TriggerResults;
 import io.fabric8.kubernetes.api.model.EventBuilder;
+import io.fabric8.kubernetes.api.model.MicroTime;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.ObjectReferenceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -219,19 +220,27 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
                 logger.info("Setting status on autoscaler {} to: {}", name, message);
                 status.setMessage(message);
 
+                final DateTimeFormatter k8sMicroTime = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'.'SSSSSSXXX");
+
                 var event = new EventBuilder()
                         .withMetadata(new ObjectMetaBuilder()
-                                              .withName(name + "." + System.currentTimeMillis())
+                                              .withGenerateName(name)
                                               .withNamespace(kafkaPodAutoscaler.getMetadata().getNamespace())
                                               .build())
+                        .withReportingComponent("kafka-pod-autoscaler")
+                        .withReportingInstance(name)
+                        .withAction("Info")
                         .withType("Info")
                         .withMessage(message)
                         .withReason("ScaleDecision")
                         .withInvolvedObject(new ObjectReferenceBuilder()
+                                                    .withApiVersion(kafkaPodAutoscaler.getApiVersion())
                                                     .withKind(kafkaPodAutoscaler.getKind())
                                                     .withName(name)
                                                     .withNamespace(kafkaPodAutoscaler.getMetadata().getNamespace())
+                                                    .withResourceVersion(kafkaPodAutoscaler.getMetadata().getResourceVersion())
                                                     .build())
+                        .withEventTime(new MicroTime(k8sMicroTime.format(Instant.now().atZone(ZoneOffset.UTC))))
                         .build();
 
                 client.v1().events().resource(event).create();
