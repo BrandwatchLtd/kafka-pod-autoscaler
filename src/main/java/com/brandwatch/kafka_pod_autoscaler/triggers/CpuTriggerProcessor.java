@@ -2,10 +2,16 @@ package com.brandwatch.kafka_pod_autoscaler.triggers;
 
 import static java.util.Objects.requireNonNull;
 
+import java.time.Duration;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.auto.service.AutoService;
 
 import brandwatch.com.v1alpha1.KafkaPodAutoscaler;
 import brandwatch.com.v1alpha1.kafkapodautoscalerspec.Triggers;
+import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import lombok.extern.slf4j.Slf4j;
 
@@ -14,6 +20,13 @@ import com.brandwatch.kafka_pod_autoscaler.ScaledResource;
 @Slf4j
 @AutoService(TriggerProcessor.class)
 public class CpuTriggerProcessor implements TriggerProcessor {
+    private static final LoadingCache<String, Cache<Long, Double>> podCpuHistory = Caffeine
+            .newBuilder()
+            .expireAfterAccess(Duration.ofMinutes(5L))
+            .build(key -> Caffeine.newBuilder()
+                          .expireAfterAccess(Duration.ofMinutes(1L))
+                          .build());
+
     @Override
     public String getType() {
         return "cpu";
@@ -23,9 +36,7 @@ public class CpuTriggerProcessor implements TriggerProcessor {
     public TriggerResult process(KubernetesClient client, ScaledResource resource, KafkaPodAutoscaler autoscaler, Triggers trigger, int replicaCount) {
         var threshold = Long.parseLong(requireNonNull(trigger.getMetadata().get("threshold")));
         var cpu = resource.pods().stream()
-            .map(pod -> client.top().pods().metrics(pod.getMetadata().getNamespace(), pod.getMetadata().getName()))
-            .flatMap(m -> m.getContainers().stream())
-            .mapToDouble(c -> c.getUsage().get("cpu").getNumericalAmount().doubleValue())
+            .mapToDouble(pod -> getAverageCpu(client, pod))
             .sum();
         var cpuRequest = resource.pods().stream()
                           .flatMap(pod -> pod.getSpec().getContainers().stream().map(c -> c.getResources().getRequests()))
@@ -36,5 +47,21 @@ public class CpuTriggerProcessor implements TriggerProcessor {
         logger.debug("Calculating CPU trigger with values: cpu={}, cpuRequest={}, cpuPercent={}, threshold={}",
                      cpu, cpuRequest, cpuPercent, threshold);
         return new TriggerResult(trigger, cpuPercent, threshold);
+    }
+
+    private Double getAverageCpu(KubernetesClient client, Pod pod) {
+        var key = pod.getMetadata().getNamespace() + "/" + pod.getMetadata().getName();
+        var podCpu = client.top().pods().metrics(pod.getMetadata().getNamespace(), pod.getMetadata().getName())
+                .getContainers().stream()
+                .mapToDouble(c -> c.getUsage().get("cpu").getNumericalAmount().doubleValue())
+                .sum();
+
+        var historicalCpu = podCpuHistory.get(key);
+        historicalCpu.put(System.currentTimeMillis(), podCpu);
+
+        return historicalCpu.asMap().values().stream()
+                            .mapToDouble(v -> v)
+                            .average()
+                            .orElse(0);
     }
 }
