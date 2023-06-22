@@ -230,7 +230,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
                         .withReportingComponent("kafka-pod-autoscaler")
                         .withReportingInstance(name)
                         .withAction("Info")
-                        .withType("Info")
+                        .withType("Normal")
                         .withMessage(message)
                         .withReason("ScaleDecision")
                         .withInvolvedObject(new ObjectReferenceBuilder()
