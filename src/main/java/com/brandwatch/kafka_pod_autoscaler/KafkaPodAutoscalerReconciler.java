@@ -70,13 +70,6 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
                                 .rescheduleAfter(Duration.ofSeconds(10));
         }
 
-        var rescaleWindow = Instant.now().minus(Duration.ofSeconds(kafkaPodAutoscaler.getSpec().getCooloffSeconds()));
-        if (statusLogger.getLastScale() != null && statusLogger.getLastScale().isAfter(rescaleWindow)) {
-            statusLogger.log(targetKind + " has been scaled recently. Skipping scale");
-            return UpdateControl.patchStatus(kafkaPodAutoscaler)
-                                .rescheduleAfter(Duration.ofSeconds(10));
-        }
-
         var currentReplicaCount = kafkaPodAutoscaler.getSpec().getDryRun()
                 ? Optional.ofNullable(kafkaPodAutoscaler.getStatus().getDryRunReplicas())
                           .orElse(resource.getReplicaCount())
@@ -104,15 +97,24 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         statusLogger.recordFinalReplicaCount(finalReplicaCount);
 
         if (currentReplicaCount != finalReplicaCount) {
+            var rescaleWindow = Instant.now().minus(Duration.ofSeconds(kafkaPodAutoscaler.getSpec().getCooloffSeconds()));
+            if (statusLogger.getLastScale() != null && statusLogger.getLastScale().isAfter(rescaleWindow)) {
+                statusLogger.log(targetKind + " has been scaled recently. Skipping scale");
+                return UpdateControl.patchStatus(kafkaPodAutoscaler)
+                                    .rescheduleAfter(Duration.ofSeconds(10));
+            }
+
             if (!kafkaPodAutoscaler.getSpec().getDryRun()) {
                 statusLogger.setDryRunReplicas(null);
                 resource.scale(finalReplicaCount);
+                statusLogger.log(targetKind + " being scaled from " + currentReplicaCount
+                                         + " to " + finalReplicaCount + " replicas");
             } else {
                 statusLogger.setDryRunReplicas(finalReplicaCount);
+                statusLogger.log(targetKind + " dry-run scaled from " + currentReplicaCount
+                                         + " to " + finalReplicaCount + " replicas");
             }
             statusLogger.recordLastScale();
-            statusLogger.log(targetKind + " being scaled from " + currentReplicaCount
-                                     + " to " + finalReplicaCount + " replicas");
         } else {
             statusLogger.log(targetKind + " is correctly scaled to " + finalReplicaCount + " replicas");
         }
