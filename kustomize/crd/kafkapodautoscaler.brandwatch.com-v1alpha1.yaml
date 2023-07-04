@@ -56,7 +56,6 @@ spec:
                 type: string
               triggers:
                 type: array
-                nullable: false
                 default: []
                 items:
                   type: object
@@ -87,7 +86,6 @@ spec:
                 format: int32
               triggerResults:
                 type: array
-                nullable: false
                 default: []
                 items:
                   type: object
