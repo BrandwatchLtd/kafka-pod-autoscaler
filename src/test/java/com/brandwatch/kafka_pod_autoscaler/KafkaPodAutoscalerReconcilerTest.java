@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import brandwatch.com.v1alpha1.KafkaPodAutoscaler;
 import brandwatch.com.v1alpha1.KafkaPodAutoscalerSpec;
+import brandwatch.com.v1alpha1.KafkaPodAutoscalerStatus;
 import brandwatch.com.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
 import brandwatch.com.v1alpha1.kafkapodautoscalerspec.Triggers;
 import brandwatch.com.v1alpha1.kafkapodautoscalerstatus.TriggerResults;
@@ -99,13 +100,19 @@ public class KafkaPodAutoscalerReconcilerTest {
 
     @Test
     public void notReadyResource() {
+        var status = new KafkaPodAutoscalerStatus();
+        status.setLastScale("2000-01-02T03:04:05.006Z");
+        kpa.setStatus(status);
+
         when(deploymentResource.isReady()).thenReturn(false);
 
         var updateControl = reconciler.reconcile(kpa, mockContext);
 
         verify(deploymentResource, never()).scale(anyInt());
         assertThat(updateControl.getResource().getStatus().getMessage())
-                .isEqualTo("Deployment is not ready. Skipping scale");
+            .isEqualTo("Deployment is not ready. Skipping scale");
+        assertThat(updateControl.getResource().getStatus().getLastScale())
+            .isEqualTo("2000-01-02T03:04:05.006Z");
     }
 
     @Test
@@ -140,6 +147,7 @@ public class KafkaPodAutoscalerReconcilerTest {
         when(deployment.getSpec().getReplicas()).thenReturn(1);
 
         var updateControl = reconciler.reconcile(kpa, mockContext);
+        var lastScale = updateControl.getResource().getStatus().getLastScale();
         verify(deploymentResource).scale(3);
 
         for (var i = 0; i < 5; i++) {
@@ -147,7 +155,9 @@ public class KafkaPodAutoscalerReconcilerTest {
 
             verify(deploymentResource).scale(3);
             assertThat(updateControl.getResource().getStatus().getMessage())
-                    .isEqualTo("Deployment has been scaled recently. Skipping scale");
+                .isEqualTo("Deployment has been scaled recently. Skipping scale");
+            assertThat(updateControl.getResource().getStatus().getLastScale())
+                .isEqualTo(lastScale);
             assertThat(updateControl.getResource().getStatus().getCurrentReplicaCount())
                     .isEqualTo(1);
             assertThat(updateControl.getResource().getStatus().getPartitionCount())
