@@ -96,11 +96,29 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         statusLogger.recordFinalReplicaCount(finalReplicaCount);
 
         if (currentReplicaCount != finalReplicaCount) {
-            var rescaleWindow = Instant.now().minus(Duration.ofSeconds(kafkaPodAutoscaler.getSpec().getCooloffSeconds()));
-            if (statusLogger.getLastScale() != null && statusLogger.getLastScale().isAfter(rescaleWindow)) {
+            var cooloffWindow = Instant.now().minus(Duration.ofSeconds(kafkaPodAutoscaler.getSpec().getCooloffSeconds()));
+            if (statusLogger.getLastScale() != null && statusLogger.getLastScale().isAfter(cooloffWindow)) {
                 statusLogger.log(targetKind + " has been scaled recently. Skipping scale");
                 return UpdateControl.patchStatus(kafkaPodAutoscaler)
                                     .rescheduleAfter(Duration.ofSeconds(10));
+            }
+            var behavior = kafkaPodAutoscaler.getSpec().getBehavior();
+            if (behavior != null && currentReplicaCount < finalReplicaCount) {
+                var scaleUpWindow = Instant.now().minus(Duration.ofSeconds(behavior.getScaleUp().getStabilizationWindowSeconds()));
+
+                if (statusLogger.getLastScale() != null && statusLogger.getLastScale().isAfter(scaleUpWindow)) {
+                    statusLogger.log(targetKind + " has been scaled up recently. Skipping scale");
+                    return UpdateControl.patchStatus(kafkaPodAutoscaler)
+                                        .rescheduleAfter(Duration.ofSeconds(10));
+                }
+            } else if(behavior != null) {
+                var scaleDownWindow = Instant.now().minus(Duration.ofSeconds(behavior.getScaleDown().getStabilizationWindowSeconds()));
+
+                if (statusLogger.getLastScale() != null && statusLogger.getLastScale().isAfter(scaleDownWindow)) {
+                    statusLogger.log(targetKind + " has been scaled down recently. Skipping scale");
+                    return UpdateControl.patchStatus(kafkaPodAutoscaler)
+                                        .rescheduleAfter(Duration.ofSeconds(10));
+                }
             }
 
             if (!kafkaPodAutoscaler.getSpec().getDryRun()) {

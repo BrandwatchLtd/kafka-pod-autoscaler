@@ -66,6 +66,21 @@ spec:
                       type: object
                       additionalProperties:
                         type: string
+              behavior:
+                type: object
+                properties:
+                  scaleUp:
+                    type: object
+                    properties:
+                      stabilizationWindowSeconds:
+                        type: integer
+                        default: 300
+                  scaleDown:
+                    type: object
+                    properties:
+                      stabilizationWindowSeconds:
+                        type: integer
+                        default: 300
           status:
             type: object
             properties:
