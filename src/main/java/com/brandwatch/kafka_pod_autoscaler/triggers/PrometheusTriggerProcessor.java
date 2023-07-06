@@ -56,7 +56,7 @@ public class PrometheusTriggerProcessor implements TriggerProcessor {
         var request = HttpRequest.newBuilder()
                                  .uri(uri)
                                  .build();
-        logger.info("Requesting metrics from the prometheus API: {}", uri);
+        logger.debug("Requesting metrics from the prometheus API: {}", uri);
 
         try {
             var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
