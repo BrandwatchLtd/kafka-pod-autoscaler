@@ -51,6 +51,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
 
         if (resource == null) {
             statusLogger.clearStatus();
+            statusLogger.setScaleable(false);
             statusLogger.log(targetKind + " not found. Skipping scale");
             return UpdateControl.patchStatus(kafkaPodAutoscaler)
                                 .rescheduleAfter(Duration.ofSeconds(10));
@@ -58,12 +59,14 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
 
         if (resource.getReplicaCount() == 0) {
             statusLogger.clearStatus();
+            statusLogger.setScaleable(false);
             statusLogger.log(targetKind + " has been scaled to zero. Skipping scale");
             return UpdateControl.patchStatus(kafkaPodAutoscaler)
                                 .rescheduleAfter(Duration.ofSeconds(10));
         }
 
         if (!resource.isReady()) {
+            statusLogger.setScaleable(false);
             statusLogger.log(targetKind + " is not ready. Skipping scale");
             return UpdateControl.patchStatus(kafkaPodAutoscaler)
                 .rescheduleAfter(Duration.ofSeconds(10));
@@ -98,6 +101,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         if (currentReplicaCount != finalReplicaCount) {
             var rescaleWindow = Instant.now().minus(Duration.ofSeconds(kafkaPodAutoscaler.getSpec().getCooloffSeconds()));
             if (statusLogger.getLastScale() != null && statusLogger.getLastScale().isAfter(rescaleWindow)) {
+                statusLogger.setScaleable(false);
                 statusLogger.log(targetKind + " has been scaled recently. Skipping scale");
                 return UpdateControl.patchStatus(kafkaPodAutoscaler)
                                     .rescheduleAfter(Duration.ofSeconds(10));
@@ -117,6 +121,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         } else {
             statusLogger.log(targetKind + " is correctly scaled to " + finalReplicaCount + " replicas");
         }
+        statusLogger.setScaleable(true);
 
         return UpdateControl.patchStatus(kafkaPodAutoscaler)
                             // TODO: Backoff if scaled up/down - allow this to be configurable
@@ -289,6 +294,10 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         public void recordLastScale() {
             scalerMetrics.setLastScale(Instant.now().toEpochMilli());
             status.setLastScale(DATE_TIME_FORMATTER.format(Instant.now().atZone(ZoneOffset.UTC)));
+        }
+
+        public void setScaleable(boolean scalable) {
+            scalerMetrics.setScalable(scalable);
         }
 
         public void clearStatus() {

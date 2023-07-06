@@ -21,6 +21,7 @@ public class ScalerMetrics {
     private final AtomicInteger finalReplicaCount;
     private final AtomicInteger dryRunReplicas;
     private final AtomicLong lastScale;
+    private final AtomicInteger scalable;
     private final Map<String, AtomicLong> triggerValueMetrics = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> triggerThresholdMetrics = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> triggerReplicaMetrics = new ConcurrentHashMap<>();
@@ -33,6 +34,7 @@ public class ScalerMetrics {
         finalReplicaCount = Metrics.gauge("kpa_final_replica_count", tags, new AtomicInteger());
         dryRunReplicas = Metrics.gauge("kpa_dry_run_replicas", tags, new AtomicInteger());
         lastScale = Metrics.gauge("kpa_last_scale", tags, new AtomicLong());
+        scalable = Metrics.gauge("kpa_scaleable", tags, new AtomicInteger());
     }
 
     public static ScalerMetrics getOrCreate(String namespace, String name) {
@@ -62,6 +64,10 @@ public class ScalerMetrics {
 
     public void setLastScale(long lastScale) {
         this.lastScale.set(lastScale);
+    }
+
+    public void setScalable(boolean scalable) {
+        this.scalable.set(scalable ? 1 : 0);
     }
 
     public void setTriggerMetrics(TriggerResult result, int recommendedReplicas) {
