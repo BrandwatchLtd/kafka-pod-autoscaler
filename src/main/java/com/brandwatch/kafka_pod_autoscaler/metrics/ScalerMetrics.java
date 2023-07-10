@@ -100,4 +100,8 @@ public class ScalerMetrics {
                                                 })
                                .set(result.recommendedReplicas(recommendedReplicas));
     }
+
+    public boolean isScalable() {
+        return scalable.get() == 1;
+    }
 }

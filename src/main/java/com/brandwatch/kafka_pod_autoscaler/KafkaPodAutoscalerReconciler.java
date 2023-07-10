@@ -1,5 +1,6 @@
 package com.brandwatch.kafka_pod_autoscaler;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -36,16 +37,25 @@ import com.brandwatch.kafka_pod_autoscaler.triggers.TriggerResult;
 @Slf4j
 @ControllerConfiguration
 public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscaler> {
+    static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ISO_DATE_TIME;
+
     private final PartitionCountFetcher partitionCountFetcher;
+    Clock clock;
 
     public KafkaPodAutoscalerReconciler(PartitionCountFetcher partitionCountFetcher) {
+        this(partitionCountFetcher, Clock.systemUTC());
+    }
+
+    // VisibleForTesting
+    KafkaPodAutoscalerReconciler(PartitionCountFetcher partitionCountFetcher, Clock clock) {
         this.partitionCountFetcher = partitionCountFetcher;
+        this.clock = clock;
     }
 
     @Override
     public UpdateControl<KafkaPodAutoscaler> reconcile(KafkaPodAutoscaler kafkaPodAutoscaler, Context<KafkaPodAutoscaler> context) {
         var targetKind = kafkaPodAutoscaler.getSpec().getScaleTargetRef().getKind();
-        var statusLogger = new StatusLogger(context.getClient(), kafkaPodAutoscaler);
+        var statusLogger = new StatusLogger(context.getClient(), kafkaPodAutoscaler, clock);
         var resource = getScaledResource(context.getClient(), kafkaPodAutoscaler.getMetadata().getNamespace(),
                                          kafkaPodAutoscaler.getSpec().getScaleTargetRef());
 
@@ -98,15 +108,21 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         statusLogger.recordCalculatedReplicaCount(calculatedReplicaCount);
         statusLogger.recordFinalReplicaCount(finalReplicaCount);
 
-        if (currentReplicaCount != finalReplicaCount) {
-            var rescaleWindow = Instant.now().minus(Duration.ofSeconds(kafkaPodAutoscaler.getSpec().getCooloffSeconds()));
-            if (statusLogger.getLastScale() != null && statusLogger.getLastScale().isAfter(rescaleWindow)) {
-                statusLogger.setScaleable(false);
+        if (recentlyScaled(kafkaPodAutoscaler, statusLogger)) {
+            if (currentReplicaCount == finalReplicaCount) {
+                // Reset to the correct message here
+                statusLogger.log(targetKind + " is correctly scaled to " + finalReplicaCount + " replicas");
+            } else {
                 statusLogger.log(targetKind + " has been scaled recently. Skipping scale");
-                return UpdateControl.patchStatus(kafkaPodAutoscaler)
-                                    .rescheduleAfter(Duration.ofSeconds(10));
             }
+            statusLogger.setScaleable(false);
 
+            return UpdateControl.patchStatus(kafkaPodAutoscaler)
+                .rescheduleAfter(Duration.ofSeconds(10));
+        }
+        statusLogger.setScaleable(true);
+
+        if (currentReplicaCount != finalReplicaCount) {
             if (!kafkaPodAutoscaler.getSpec().getDryRun()) {
                 statusLogger.setDryRunReplicas(null);
                 resource.scale(finalReplicaCount);
@@ -121,11 +137,18 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         } else {
             statusLogger.log(targetKind + " is correctly scaled to " + finalReplicaCount + " replicas");
         }
-        statusLogger.setScaleable(true);
 
         return UpdateControl.patchStatus(kafkaPodAutoscaler)
                             // TODO: Backoff if scaled up/down - allow this to be configurable
                             .rescheduleAfter(Duration.ofSeconds(10));
+    }
+
+    private boolean recentlyScaled(KafkaPodAutoscaler kafkaPodAutoscaler, StatusLogger statusLogger) {
+        var rescaleWindow = Instant.now(clock).minus(Duration.ofSeconds(kafkaPodAutoscaler.getSpec().getCooloffSeconds()));
+        if (statusLogger.getLastScale() != null && statusLogger.getLastScale().isAfter(rescaleWindow)) {
+            return true;
+        }
+        return false;
     }
 
     private ScaledResource getScaledResource(KubernetesClient client, String namespace, ScaleTargetRef scaleTargetRef) {
@@ -189,20 +212,24 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         return Math.max(partitionCount, 1);
     }
 
-    static class StatusLogger {
-        private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ISO_DATE_TIME;
+    void setClock(Clock clock) {
+        this.clock = clock;
+    }
 
+    static class StatusLogger {
         private final KubernetesClient client;
         private final KafkaPodAutoscaler kafkaPodAutoscaler;
+        private final Clock clock;
         private final String name;
         @Getter
         private final Instant lastScale;
         private final KafkaPodAutoscalerStatus status;
         private final ScalerMetrics scalerMetrics;
 
-        public StatusLogger(KubernetesClient client, KafkaPodAutoscaler kafkaPodAutoscaler) {
+        public StatusLogger(KubernetesClient client, KafkaPodAutoscaler kafkaPodAutoscaler, Clock clock) {
             this.client = client;
             this.kafkaPodAutoscaler = kafkaPodAutoscaler;
+            this.clock = clock;
             this.name = kafkaPodAutoscaler.getMetadata().getName();
             this.lastScale = Optional.ofNullable(kafkaPodAutoscaler.getStatus())
                     .map(KafkaPodAutoscalerStatus::getLastScale)
@@ -221,7 +248,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         public void log(String message) {
             var lastMessage = status.getMessage();
 
-            status.setTimestamp(Instant.now().toString());
+            status.setTimestamp(Instant.now(clock).toString());
             if (!Objects.equals(lastMessage, message)) {
                 logger.info("Setting status on autoscaler {} to: {}", name, message);
                 status.setMessage(message);
@@ -246,7 +273,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
                                                     .withNamespace(kafkaPodAutoscaler.getMetadata().getNamespace())
                                                     .withResourceVersion(kafkaPodAutoscaler.getMetadata().getResourceVersion())
                                                     .build())
-                        .withEventTime(new MicroTime(k8sMicroTime.format(Instant.now().atZone(ZoneOffset.UTC))))
+                        .withEventTime(new MicroTime(k8sMicroTime.format(Instant.now(clock).atZone(ZoneOffset.UTC))))
                         .build();
 
                 client.v1().events().resource(event).create();
@@ -292,8 +319,8 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         }
 
         public void recordLastScale() {
-            scalerMetrics.setLastScale(Instant.now().toEpochMilli());
-            status.setLastScale(DATE_TIME_FORMATTER.format(Instant.now().atZone(ZoneOffset.UTC)));
+            scalerMetrics.setLastScale(Instant.now(clock).toEpochMilli());
+            status.setLastScale(DATE_TIME_FORMATTER.format(Instant.now(clock).atZone(ZoneOffset.UTC)));
         }
 
         public void setScaleable(boolean scalable) {

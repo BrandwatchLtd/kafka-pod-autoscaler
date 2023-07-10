@@ -9,6 +9,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 
@@ -36,8 +39,11 @@ import io.fabric8.kubernetes.client.dsl.RollableScalableResource;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 
+import com.brandwatch.kafka_pod_autoscaler.metrics.ScalerMetrics;
+
 @ExtendWith(MockitoExtension.class)
 public class KafkaPodAutoscalerReconcilerTest {
+    private static final Instant NOW = Instant.parse("2000-01-02T03:04:05.006Z");
     private static final String NAMESPACE = "test-ns";
     private static final String DEPLOYMENT_NAME = "test-deploy";
 
@@ -56,7 +62,7 @@ public class KafkaPodAutoscalerReconcilerTest {
 
     @BeforeEach
     public void beforeEach() {
-        reconciler = new KafkaPodAutoscalerReconciler(partitionCountFetcher);
+        reconciler = new KafkaPodAutoscalerReconciler(partitionCountFetcher, Clock.fixed(NOW, ZoneOffset.UTC));
 
         when(mockContext.getClient()).thenReturn(client);
         @SuppressWarnings("unchecked")
@@ -95,7 +101,10 @@ public class KafkaPodAutoscalerReconcilerTest {
 
         verify(deploymentResource, never()).scale(anyInt());
         assertThat(updateControl.getResource().getStatus().getMessage())
-                .isEqualTo("Deployment not found. Skipping scale");
+            .isEqualTo("Deployment not found. Skipping scale");
+
+        var metrics = getMetrics();
+        assertThat(metrics.isScalable()).isEqualTo(false);
     }
 
     @Test
@@ -113,6 +122,9 @@ public class KafkaPodAutoscalerReconcilerTest {
             .isEqualTo("Deployment is not ready. Skipping scale");
         assertThat(updateControl.getResource().getStatus().getLastScale())
             .isEqualTo("2000-01-02T03:04:05.006Z");
+
+        var metrics = getMetrics();
+        assertThat(metrics.isScalable()).isEqualTo(false);
     }
 
     @Test
@@ -134,6 +146,9 @@ public class KafkaPodAutoscalerReconcilerTest {
                 .isEqualTo(null);
         assertThat(updateControl.getResource().getStatus().getTriggerResults())
                 .isEqualTo(List.of());
+
+        var metrics = getMetrics();
+        assertThat(metrics.isScalable()).isEqualTo(false);
     }
 
     @Test
@@ -142,7 +157,7 @@ public class KafkaPodAutoscalerReconcilerTest {
         staticTrigger.setType("static");
         staticTrigger.setMetadata(Map.of("replicas", "3"));
         kpa.getSpec().setTriggers(List.of(
-                staticTrigger
+            staticTrigger
         ));
         when(deployment.getSpec().getReplicas()).thenReturn(1);
 
@@ -151,6 +166,9 @@ public class KafkaPodAutoscalerReconcilerTest {
         verify(deploymentResource).scale(3);
 
         for (var i = 0; i < 5; i++) {
+            // skip clock forward
+            reconciler.setClock(Clock.fixed(NOW.plusSeconds(30), ZoneOffset.UTC));
+
             updateControl = reconciler.reconcile(kpa, mockContext);
 
             verify(deploymentResource).scale(3);
@@ -159,14 +177,97 @@ public class KafkaPodAutoscalerReconcilerTest {
             assertThat(updateControl.getResource().getStatus().getLastScale())
                 .isEqualTo(lastScale);
             assertThat(updateControl.getResource().getStatus().getCurrentReplicaCount())
-                    .isEqualTo(1);
+                .isEqualTo(1);
             assertThat(updateControl.getResource().getStatus().getPartitionCount())
-                    .isEqualTo(null);
+                .isEqualTo(null);
             assertThat(updateControl.getResource().getStatus().getCalculatedReplicaCount())
-                    .isEqualTo(3);
+                .isEqualTo(3);
             assertThat(updateControl.getResource().getStatus().getFinalReplicaCount())
-                    .isEqualTo(3);
+                .isEqualTo(3);
+
+            var metrics = getMetrics();
+            assertThat(metrics.isScalable()).isEqualTo(false);
         }
+    }
+
+    @Test
+    public void returnsToOriginalScalingWithinCooloff() {
+        var staticTrigger = new Triggers();
+        staticTrigger.setType("static");
+        staticTrigger.setMetadata(Map.of("replicas", "3"));
+        kpa.getSpec().setTriggers(List.of(
+            staticTrigger
+        ));
+        when(deployment.getSpec().getReplicas()).thenReturn(1);
+
+        var updateControl = reconciler.reconcile(kpa, mockContext);
+        var lastScale = updateControl.getResource().getStatus().getLastScale();
+        verify(deploymentResource).scale(3);
+
+        when(deployment.getSpec().getReplicas()).thenReturn(3);
+        // skip clock forward
+        reconciler.setClock(Clock.fixed(NOW.plusSeconds(10), ZoneOffset.UTC));
+
+        updateControl = reconciler.reconcile(kpa, mockContext);
+
+        verify(deploymentResource).scale(anyInt());
+        assertThat(updateControl.getResource().getStatus().getMessage())
+            .isEqualTo("Deployment is correctly scaled to 3 replicas");
+        assertThat(updateControl.getResource().getStatus().getLastScale())
+            .isEqualTo(lastScale);
+        assertThat(updateControl.getResource().getStatus().getCurrentReplicaCount())
+            .isEqualTo(3);
+        assertThat(updateControl.getResource().getStatus().getPartitionCount())
+            .isEqualTo(null);
+        assertThat(updateControl.getResource().getStatus().getCalculatedReplicaCount())
+            .isEqualTo(3);
+        assertThat(updateControl.getResource().getStatus().getFinalReplicaCount())
+            .isEqualTo(3);
+
+        var metrics = getMetrics();
+        assertThat(metrics.isScalable()).isEqualTo(false);
+    }
+
+    @Test
+    public void coolOffPeriodExpires() {
+        var staticTrigger = new Triggers();
+        staticTrigger.setType("static");
+        staticTrigger.setMetadata(Map.of("replicas", "3"));
+        kpa.getSpec().setTriggers(List.of(
+            staticTrigger
+        ));
+        when(deployment.getSpec().getReplicas()).thenReturn(1);
+
+        var updateControl = reconciler.reconcile(kpa, mockContext);
+        var lastScale = updateControl.getResource().getStatus().getLastScale();
+        verify(deploymentResource).scale(3);
+
+        when(deployment.getSpec().getReplicas()).thenReturn(3);
+
+        // skip clock forward
+        var newNow = NOW.plusSeconds(301);
+        reconciler.setClock(Clock.fixed(newNow, ZoneOffset.UTC));
+
+        staticTrigger.setMetadata(Map.of("replicas", "1"));
+        updateControl = reconciler.reconcile(kpa, mockContext);
+
+        verify(deploymentResource).scale(1);
+
+        assertThat(updateControl.getResource().getStatus().getMessage())
+            .isEqualTo("Deployment being scaled from 3 to 1 replicas");
+        assertThat(updateControl.getResource().getStatus().getLastScale())
+            .isEqualTo(KafkaPodAutoscalerReconciler.DATE_TIME_FORMATTER.format(newNow.atZone(ZoneOffset.UTC)));
+        assertThat(updateControl.getResource().getStatus().getCurrentReplicaCount())
+            .isEqualTo(3);
+        assertThat(updateControl.getResource().getStatus().getPartitionCount())
+            .isEqualTo(null);
+        assertThat(updateControl.getResource().getStatus().getCalculatedReplicaCount())
+            .isEqualTo(1);
+        assertThat(updateControl.getResource().getStatus().getFinalReplicaCount())
+            .isEqualTo(1);
+
+        var metrics = getMetrics();
+        assertThat(metrics.isScalable()).isEqualTo(true);
     }
 
     @Test
@@ -188,6 +289,9 @@ public class KafkaPodAutoscalerReconcilerTest {
                 .isEqualTo(1);
         assertThat(updateControl.getResource().getStatus().getTriggerResults())
                 .isEqualTo(List.of());
+
+        var metrics = getMetrics();
+        assertThat(metrics.isScalable()).isEqualTo(true);
     }
 
     @Test
@@ -216,6 +320,9 @@ public class KafkaPodAutoscalerReconcilerTest {
         assertTriggerResults(updateControl, List.of(
                 createTriggerResultDTO("static", 3, 1, 3)
         ));
+
+        var metrics = getMetrics();
+        assertThat(metrics.isScalable()).isEqualTo(true);
     }
 
     @Test
@@ -249,6 +356,9 @@ public class KafkaPodAutoscalerReconcilerTest {
         assertTriggerResults(updateControl, List.of(
                 createTriggerResultDTO("static", 3, 1, 3)
         ));
+
+        var metrics = getMetrics();
+        assertThat(metrics.isScalable()).isEqualTo(true);
     }
 
     @Test
@@ -287,6 +397,9 @@ public class KafkaPodAutoscalerReconcilerTest {
                 createTriggerResultDTO("static", 2, 1, 2),
                 createTriggerResultDTO("static", 3, 1, 3)
         ));
+
+        var metrics = getMetrics();
+        assertThat(metrics.isScalable()).isEqualTo(true);
     }
 
     private void assertTriggerResults(UpdateControl<KafkaPodAutoscaler> updateControl, List<TriggerResults> expectedResults) {
@@ -314,5 +427,9 @@ public class KafkaPodAutoscalerReconcilerTest {
         triggerResults.setRecommendedReplicas(recommendedReplicas);
 
         return triggerResults;
+    }
+
+    private ScalerMetrics getMetrics() {
+        return ScalerMetrics.getOrCreate(kpa);
     }
 }
