@@ -203,15 +203,15 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         public StatusLogger(KubernetesClient client, KafkaPodAutoscaler kafkaPodAutoscaler) {
             this.client = client;
             this.kafkaPodAutoscaler = kafkaPodAutoscaler;
-            name = kafkaPodAutoscaler.getMetadata().getName();
-            lastScale = Optional.ofNullable(kafkaPodAutoscaler.getStatus())
+            this.name = kafkaPodAutoscaler.getMetadata().getName();
+            this.lastScale = Optional.ofNullable(kafkaPodAutoscaler.getStatus())
                     .map(KafkaPodAutoscalerStatus::getLastScale)
                     .map(DATE_TIME_FORMATTER::parse)
                     .map(Instant::from)
                     .orElse(null);
-            status = Optional.ofNullable(kafkaPodAutoscaler.getStatus())
+            this.scalerMetrics = ScalerMetrics.getOrCreate(kafkaPodAutoscaler);
+            this.status = Optional.ofNullable(kafkaPodAutoscaler.getStatus())
                     .orElseGet(KafkaPodAutoscalerStatus::new);
-            this.scalerMetrics = ScalerMetrics.getOrCreate(kafkaPodAutoscaler.getMetadata().getNamespace(), name);
             if (status.getTriggerResults() == null) {
                 status.setTriggerResults(new ArrayList<>());
             }
