@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import brandwatch.com.v1alpha1.KafkaPodAutoscaler;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Tags;
 import lombok.NonNull;
@@ -26,8 +27,17 @@ public class ScalerMetrics {
     private final Map<String, AtomicLong> triggerThresholdMetrics = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> triggerReplicaMetrics = new ConcurrentHashMap<>();
 
-    public ScalerMetrics(@NonNull String namespace, @NonNull String name) {
-        tags = Tags.of("kpa-namespace", namespace, "kpa-name", name);
+    public ScalerMetrics(@NonNull KafkaPodAutoscaler kpa) {
+        var kpaName = kpa.getMetadata().getName();
+        var kpaNamespace = kpa.getMetadata().getNamespace();
+        var targetName = kpa.getSpec().getScaleTargetRef().getName();
+        var targetKind = kpa.getSpec().getScaleTargetRef().getKind();
+        var targetNamespace = kpaNamespace;  // kpa's must be in target namespace
+        tags = Tags.of("kpa-namespace", kpaNamespace,
+                       "kpa-name", kpaName,
+                       "kpa-target-namespace", targetNamespace,
+                       "kpa-target-name", targetName,
+                       "kpa-target-kind", targetKind);
         partitionCount = Metrics.gauge("kpa_partition_count", tags, new AtomicInteger());
         currentReplicaCount = Metrics.gauge("kpa_current_replica_count", tags, new AtomicInteger());
         calculatedReplicaCount = Metrics.gauge("kpa_calculated_replica_count", tags, new AtomicInteger());
@@ -37,9 +47,9 @@ public class ScalerMetrics {
         scalable = Metrics.gauge("kpa_scaleable", tags, new AtomicInteger());
     }
 
-    public static ScalerMetrics getOrCreate(String namespace, String name) {
-        var key = namespace + "-" + name;
-        return metrics.computeIfAbsent(key, n -> new ScalerMetrics(namespace, name));
+    public static ScalerMetrics getOrCreate(KafkaPodAutoscaler kpa) {
+        var key = kpa.getMetadata().getNamespace() + "-" + kpa.getMetadata().getName();
+        return metrics.computeIfAbsent(key, n -> new ScalerMetrics(kpa));
     }
 
     public void setPartitionCount(int partitionCount) {
