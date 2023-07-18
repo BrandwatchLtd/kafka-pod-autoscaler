@@ -56,6 +56,7 @@ public class KafkaTriggerProcessor implements TriggerProcessor {
 
             return new TriggerResult(trigger, lag, threshold);
         } catch (ExecutionException e) {
+            AdminClientCache.remove(bootstrapServers);
             throw new RuntimeException(e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

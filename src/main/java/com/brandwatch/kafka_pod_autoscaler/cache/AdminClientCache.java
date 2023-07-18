@@ -28,4 +28,8 @@ public class AdminClientCache {
             return KafkaAdminClient.create(properties);
         });
     }
+
+    public static void remove(String bootstrapServers) {
+        adminClientCache.invalidate(bootstrapServers);
+    }
 }
