@@ -20,7 +20,7 @@ public class TriggerResults implements KubernetesResource {
     @Setter
     @JsonProperty("inputValue")
     @JsonSetter(nulls = Nulls.SKIP)
-    private Long inputValue;
+    private Double inputValue;
     @Getter
     @Setter
     @JsonProperty("recommendedReplicas")
@@ -30,7 +30,7 @@ public class TriggerResults implements KubernetesResource {
     @Setter
     @JsonProperty("targetThreshold")
     @JsonSetter(nulls = Nulls.SKIP)
-    private Long targetThreshold;
+    private Double targetThreshold;
     @Getter
     @Setter
     @JsonProperty("type")

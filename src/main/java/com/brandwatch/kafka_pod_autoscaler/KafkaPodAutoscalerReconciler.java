@@ -11,6 +11,8 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.ServiceLoader;
 
+import com.google.common.annotations.VisibleForTesting;
+
 import io.fabric8.kubernetes.api.model.EventBuilder;
 import io.fabric8.kubernetes.api.model.MicroTime;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
@@ -46,7 +48,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         this(partitionCountFetcher, Clock.systemUTC());
     }
 
-    // VisibleForTesting
+    @VisibleForTesting
     KafkaPodAutoscalerReconciler(PartitionCountFetcher partitionCountFetcher, Clock clock) {
         this.partitionCountFetcher = partitionCountFetcher;
         this.clock = clock;

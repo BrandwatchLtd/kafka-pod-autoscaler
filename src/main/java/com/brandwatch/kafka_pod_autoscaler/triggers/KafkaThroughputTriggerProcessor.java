@@ -11,6 +11,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.auto.service.AutoService;
+import com.google.common.annotations.VisibleForTesting;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
 import lombok.Setter;
@@ -37,7 +38,7 @@ public class KafkaThroughputTriggerProcessor implements TriggerProcessor {
             .expireAfterWrite(Duration.ofMinutes(10L))
             .build());
 
-    @Setter // (onMethod_ = { @VisibleForTesting })
+    @Setter(onMethod_ = { @VisibleForTesting })
     private Clock clock = Clock.systemUTC();
 
     @Override
