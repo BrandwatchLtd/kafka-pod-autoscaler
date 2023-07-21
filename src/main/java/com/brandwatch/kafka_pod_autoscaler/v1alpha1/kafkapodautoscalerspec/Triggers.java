@@ -10,33 +10,21 @@ import com.fasterxml.jackson.annotation.Nulls;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import io.fabric8.kubernetes.api.model.KubernetesResource;
+import lombok.Getter;
+import lombok.Setter;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({"metadata","type"})
 @JsonDeserialize
 public class Triggers implements KubernetesResource {
-
+    @Getter
+    @Setter
     @JsonProperty("metadata")
     @JsonSetter(nulls = Nulls.SKIP)
     private Map<String, String> metadata;
-
-    public Map<String, String> getMetadata() {
-        return metadata;
-    }
-
-    public void setMetadata(Map<String, String> metadata) {
-        this.metadata = metadata;
-    }
-
+    @Getter
+    @Setter
     @JsonProperty("type")
     @JsonSetter(nulls = Nulls.SKIP)
     private String type;
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
 }

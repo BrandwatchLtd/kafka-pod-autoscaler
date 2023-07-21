@@ -12,6 +12,9 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import io.fabric8.kubernetes.api.model.KubernetesResource;
 import io.fabric8.kubernetes.client.utils.Serialization;
+import lombok.Getter;
+import lombok.Setter;
+
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerstatus.TriggerResults;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -19,119 +22,57 @@ import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerstatus.Tri
 @JsonDeserialize
 public class KafkaPodAutoscalerStatus implements KubernetesResource {
 
+    @Getter
+    @Setter
     @JsonProperty("calculatedReplicaCount")
     @JsonSetter(nulls = Nulls.SKIP)
     private Integer calculatedReplicaCount;
-
-    public Integer getCalculatedReplicaCount() {
-        return calculatedReplicaCount;
-    }
-
-    public void setCalculatedReplicaCount(Integer calculatedReplicaCount) {
-        this.calculatedReplicaCount = calculatedReplicaCount;
-    }
-
+    @Getter
+    @Setter
     @JsonProperty("currentReplicaCount")
     @JsonSetter(nulls = Nulls.SKIP)
     private Integer currentReplicaCount;
-
-    public Integer getCurrentReplicaCount() {
-        return currentReplicaCount;
-    }
-
-    public void setCurrentReplicaCount(Integer currentReplicaCount) {
-        this.currentReplicaCount = currentReplicaCount;
-    }
-
+    @Getter
+    @Setter
     @JsonProperty("dryRunReplicas")
     @JsonSetter(nulls = Nulls.SKIP)
     private Integer dryRunReplicas;
-
-    public Integer getDryRunReplicas() {
-        return dryRunReplicas;
-    }
-
-    public void setDryRunReplicas(Integer dryRunReplicas) {
-        this.dryRunReplicas = dryRunReplicas;
-    }
-
+    @Getter
+    @Setter
     @JsonProperty("finalReplicaCount")
     @JsonSetter(nulls = Nulls.SKIP)
     private Integer finalReplicaCount;
-
-    public Integer getFinalReplicaCount() {
-        return finalReplicaCount;
-    }
-
-    public void setFinalReplicaCount(Integer finalReplicaCount) {
-        this.finalReplicaCount = finalReplicaCount;
-    }
-
     /**
      * The date and time that this message was added
      */
+    @Getter
+    @Setter
     @JsonProperty("lastScale")
     @JsonPropertyDescription("The date and time that this message was added")
     @JsonSetter(nulls = Nulls.SKIP)
     private String lastScale;
-
-    public String getLastScale() {
-        return lastScale;
-    }
-
-    public void setLastScale(String lastScale) {
-        this.lastScale = lastScale;
-    }
-
+    @Getter
+    @Setter
     @JsonProperty("message")
     @JsonSetter(nulls = Nulls.SKIP)
     private String message;
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
+    @Getter
+    @Setter
     @JsonProperty("partitionCount")
     @JsonSetter(nulls = Nulls.SKIP)
     private Integer partitionCount;
-
-    public Integer getPartitionCount() {
-        return partitionCount;
-    }
-
-    public void setPartitionCount(Integer partitionCount) {
-        this.partitionCount = partitionCount;
-    }
-
     /**
      * The date and time that this message was added
      */
+    @Getter
+    @Setter
     @JsonProperty("timestamp")
     @JsonPropertyDescription("The date and time that this message was added")
     @JsonSetter(nulls = Nulls.SKIP)
     private String timestamp;
-
-    public String getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(String timestamp) {
-        this.timestamp = timestamp;
-    }
-
+    @Getter
+    @Setter
     @JsonProperty("triggerResults")
     @JsonSetter(nulls = Nulls.SKIP)
     private List<TriggerResults> triggerResults = Serialization.unmarshal("[]", List.class);
-
-    public List<TriggerResults> getTriggerResults() {
-        return triggerResults;
-    }
-
-    public void setTriggerResults(List<TriggerResults> triggerResults) {
-        this.triggerResults = triggerResults;
-    }
 }

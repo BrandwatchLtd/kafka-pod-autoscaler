@@ -8,57 +8,32 @@ import com.fasterxml.jackson.annotation.Nulls;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import io.fabric8.kubernetes.api.model.KubernetesResource;
+import lombok.Getter;
+import lombok.Setter;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({"inputValue","recommendedReplicas","targetThreshold","type"})
 @JsonDeserialize
 public class TriggerResults implements KubernetesResource {
 
+    @Getter
+    @Setter
     @JsonProperty("inputValue")
     @JsonSetter(nulls = Nulls.SKIP)
     private Long inputValue;
-
-    public Long getInputValue() {
-        return inputValue;
-    }
-
-    public void setInputValue(Long inputValue) {
-        this.inputValue = inputValue;
-    }
-
+    @Getter
+    @Setter
     @JsonProperty("recommendedReplicas")
     @JsonSetter(nulls = Nulls.SKIP)
     private Integer recommendedReplicas;
-
-    public Integer getRecommendedReplicas() {
-        return recommendedReplicas;
-    }
-
-    public void setRecommendedReplicas(Integer recommendedReplicas) {
-        this.recommendedReplicas = recommendedReplicas;
-    }
-
+    @Getter
+    @Setter
     @JsonProperty("targetThreshold")
     @JsonSetter(nulls = Nulls.SKIP)
     private Long targetThreshold;
-
-    public Long getTargetThreshold() {
-        return targetThreshold;
-    }
-
-    public void setTargetThreshold(Long targetThreshold) {
-        this.targetThreshold = targetThreshold;
-    }
-
+    @Getter
+    @Setter
     @JsonProperty("type")
     @JsonSetter(nulls = Nulls.SKIP)
     private String type;
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
 }

@@ -12,6 +12,9 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.fabric8.generator.annotation.Required;
 import io.fabric8.kubernetes.api.model.KubernetesResource;
 import io.fabric8.kubernetes.client.utils.Serialization;
+import lombok.Getter;
+import lombok.Setter;
+
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.Triggers;
 
@@ -20,77 +23,36 @@ import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.Trigg
 @JsonDeserialize
 public class KafkaPodAutoscalerSpec implements KubernetesResource {
 
+    @Getter
+    @Setter
     @JsonProperty("bootstrapServers")
     @JsonSetter(nulls = Nulls.SKIP)
     private String bootstrapServers;
-
-    public String getBootstrapServers() {
-        return bootstrapServers;
-    }
-
-    public void setBootstrapServers(String bootstrapServers) {
-        this.bootstrapServers = bootstrapServers;
-    }
-
+    @Getter
+    @Setter
     @JsonProperty("cooloffSeconds")
     @JsonSetter(nulls = Nulls.SKIP)
     private Integer cooloffSeconds = 300;
-
-    public Integer getCooloffSeconds() {
-        return cooloffSeconds;
-    }
-
-    public void setCooloffSeconds(Integer cooloffSeconds) {
-        this.cooloffSeconds = cooloffSeconds;
-    }
-
+    @Getter
+    @Setter
     @JsonProperty("dryRun")
     @JsonSetter(nulls = Nulls.SKIP)
     private Boolean dryRun = false;
-
-    public Boolean getDryRun() {
-        return dryRun;
-    }
-
-    public void setDryRun(Boolean dryRun) {
-        this.dryRun = dryRun;
-    }
-
+    @Getter
+    @Setter
     @JsonProperty("scaleTargetRef")
     @Required
     @JsonSetter(nulls = Nulls.SKIP)
     private ScaleTargetRef scaleTargetRef;
-
-    public ScaleTargetRef getScaleTargetRef() {
-        return scaleTargetRef;
-    }
-
-    public void setScaleTargetRef(ScaleTargetRef scaleTargetRef) {
-        this.scaleTargetRef = scaleTargetRef;
-    }
-
+    @Getter
+    @Setter
     @JsonProperty("topicName")
     @JsonSetter(nulls = Nulls.SKIP)
     private String topicName;
-
-    public String getTopicName() {
-        return topicName;
-    }
-
-    public void setTopicName(String topicName) {
-        this.topicName = topicName;
-    }
-
+    @Getter
+    @Setter
     @JsonProperty("triggers")
     @Required
     @JsonSetter(nulls = Nulls.SKIP)
     private List<Triggers> triggers = Serialization.unmarshal("[]", List.class);
-
-    public List<Triggers> getTriggers() {
-        return triggers;
-    }
-
-    public void setTriggers(List<Triggers> triggers) {
-        this.triggers = triggers;
-    }
 }

@@ -9,48 +9,29 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import io.fabric8.generator.annotation.Required;
 import io.fabric8.kubernetes.api.model.KubernetesResource;
+import lombok.Getter;
+import lombok.Setter;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({"apiVersion","kind","name"})
 @JsonDeserialize
 public class ScaleTargetRef implements KubernetesResource {
-
+    @Getter
+    @Setter
     @JsonProperty("apiVersion")
     @Required
     @JsonSetter(nulls = Nulls.SKIP)
     private String apiVersion;
-
-    public String getApiVersion() {
-        return apiVersion;
-    }
-
-    public void setApiVersion(String apiVersion) {
-        this.apiVersion = apiVersion;
-    }
-
+    @Getter
+    @Setter
     @JsonProperty("kind")
     @Required
     @JsonSetter(nulls = Nulls.SKIP)
     private String kind = "Deployment";
-
-    public String getKind() {
-        return kind;
-    }
-
-    public void setKind(String kind) {
-        this.kind = kind;
-    }
-
+    @Getter
+    @Setter
     @JsonProperty("name")
     @Required
     @JsonSetter(nulls = Nulls.SKIP)
     private String name;
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
 }
