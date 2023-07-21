@@ -14,7 +14,7 @@ import lombok.Setter;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({"inputValue","recommendedReplicas","targetThreshold","type"})
 @JsonDeserialize
-public class TriggerResults implements KubernetesResource {
+public class TriggerResult implements KubernetesResource {
 
     @Getter
     @Setter

@@ -39,7 +39,7 @@ import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscalerSpec;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscalerStatus;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.TriggerDefinition;
-import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerstatus.TriggerResults;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerstatus.TriggerResult;
 
 @ExtendWith(MockitoExtension.class)
 public class KafkaPodAutoscalerReconcilerTest {
@@ -402,7 +402,7 @@ public class KafkaPodAutoscalerReconcilerTest {
         assertThat(metrics.isScalable()).isEqualTo(true);
     }
 
-    private void assertTriggerResults(UpdateControl<KafkaPodAutoscaler> updateControl, List<TriggerResults> expectedResults) {
+    private void assertTriggerResults(UpdateControl<KafkaPodAutoscaler> updateControl, List<TriggerResult> expectedResults) {
         var triggerResults = updateControl.getResource().getStatus().getTriggerResults();
 
         assertThat(triggerResults).hasSize(expectedResults.size());
@@ -418,8 +418,8 @@ public class KafkaPodAutoscalerReconcilerTest {
         }
     }
 
-    private static TriggerResults createTriggerResultDTO(String type, double inputValue, double targetThreshold, int recommendedReplicas) {
-        var triggerResults = new TriggerResults();
+    private static TriggerResult createTriggerResultDTO(String type, double inputValue, double targetThreshold, int recommendedReplicas) {
+        var triggerResults = new TriggerResult();
 
         triggerResults.setType(type);
         triggerResults.setInputValue(inputValue);
