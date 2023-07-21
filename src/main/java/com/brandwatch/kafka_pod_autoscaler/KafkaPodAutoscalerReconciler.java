@@ -11,11 +11,6 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.ServiceLoader;
 
-import brandwatch.com.v1alpha1.KafkaPodAutoscaler;
-import brandwatch.com.v1alpha1.KafkaPodAutoscalerStatus;
-import brandwatch.com.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
-import brandwatch.com.v1alpha1.kafkapodautoscalerspec.Triggers;
-import brandwatch.com.v1alpha1.kafkapodautoscalerstatus.TriggerResults;
 import io.fabric8.kubernetes.api.model.EventBuilder;
 import io.fabric8.kubernetes.api.model.MicroTime;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
@@ -33,6 +28,11 @@ import com.brandwatch.kafka_pod_autoscaler.metrics.ScalerMetrics;
 import com.brandwatch.kafka_pod_autoscaler.scaledresources.GenericScaledResourceFactory;
 import com.brandwatch.kafka_pod_autoscaler.triggers.TriggerProcessor;
 import com.brandwatch.kafka_pod_autoscaler.triggers.TriggerResult;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscaler;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscalerStatus;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.Triggers;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerstatus.TriggerResults;
 
 @Slf4j
 @ControllerConfiguration

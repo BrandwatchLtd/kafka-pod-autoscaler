@@ -32,6 +32,13 @@
         <scope>import</scope>
       </dependency>
       <dependency>
+        <groupId>io.fabric8</groupId>
+        <artifactId>kubernetes-client-bom</artifactId>
+        <version>${fabric8-client.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
         <groupId>io.javaoperatorsdk</groupId>
         <artifactId>operator-framework-bom</artifactId>
         <version>4.4.0</version>
@@ -99,11 +106,6 @@
       <version>${auto-service.version}</version>
     </dependency>
     <dependency>
-      <groupId>io.fabric8</groupId>
-      <artifactId>generator-annotations</artifactId>
-      <version>${fabric8-client.version}</version>
-    </dependency>
-    <dependency>
       <groupId>io.javaoperatorsdk</groupId>
       <artifactId>micrometer-support</artifactId>
     </dependency>
@@ -144,6 +146,11 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-jdk-platform-logging</artifactId>
       <version>${slf4j.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.fabric8</groupId>
+      <artifactId>crd-generator-apt</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.projectlombok</groupId>
@@ -207,6 +214,24 @@
   <build>
     <plugins>
       <plugin>
+        <groupId>com.coderplus.maven.plugins</groupId>
+        <artifactId>copy-rename-maven-plugin</artifactId>
+        <version>1.0</version>
+        <executions>
+          <execution>
+            <id>copy-file</id>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <phase>compile</phase>
+            <configuration>
+              <sourceFile>${project.build.outputDirectory}/META-INF/fabric8/kafkapodautoscalers.com.brandwatch-v1.yml</sourceFile>
+              <destinationFile>${basedir}/kustomize/crd/kafkapodautoscaler.brandwatch.com-v1alpha1.yaml</destinationFile>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>com.github.ekryd.sortpom</groupId>
         <artifactId>sortpom-maven-plugin</artifactId>
         <version>3.2.1</version>
@@ -267,22 +292,6 @@
         </executions>
       </plugin>
       <plugin>
-        <!-- Generate Java code from the custom resource definitions -->
-        <groupId>io.fabric8</groupId>
-        <artifactId>java-generator-maven-plugin</artifactId>
-        <version>${fabric8-client.version}</version>
-        <configuration>
-          <source>kustomize/crd</source>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>io.github.zlika</groupId>
         <artifactId>reproducible-build-maven-plugin</artifactId>
         <version>0.16</version>
@@ -312,6 +321,11 @@
         <configuration>
           <release>${java.version}</release>
           <annotationProcessorPaths>
+            <path>
+              <groupId>io.fabric8</groupId>
+              <artifactId>crd-generator-apt</artifactId>
+              <version>${fabric8-client.version}</version>
+            </path>
             <path>
               <groupId>org.projectlombok</groupId>
               <artifactId>lombok</artifactId>
@@ -366,24 +380,6 @@
               <goal>verify</goal>
             </goals>
             <phase>integration-test</phase>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <version>3.4.0</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>add-source</goal>
-            </goals>
-            <phase>generate-sources</phase>
-            <configuration>
-              <sources>
-                <source>${project.build.directory}/generated-sources/java/</source>
-              </sources>
-            </configuration>
           </execution>
         </executions>
       </plugin>

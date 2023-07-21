@@ -13,13 +13,13 @@ import org.apache.kafka.common.TopicPartition;
 
 import com.google.auto.service.AutoService;
 
-import brandwatch.com.v1alpha1.KafkaPodAutoscaler;
-import brandwatch.com.v1alpha1.kafkapodautoscalerspec.Triggers;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import lombok.extern.slf4j.Slf4j;
 
-import com.brandwatch.kafka_pod_autoscaler.cache.AdminClientCache;
 import com.brandwatch.kafka_pod_autoscaler.ScaledResource;
+import com.brandwatch.kafka_pod_autoscaler.cache.AdminClientCache;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscaler;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.Triggers;
 
 @Slf4j
 @AutoService(TriggerProcessor.class)

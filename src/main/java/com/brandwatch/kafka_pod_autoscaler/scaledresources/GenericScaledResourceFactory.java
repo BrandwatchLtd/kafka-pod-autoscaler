@@ -2,7 +2,7 @@ package com.brandwatch.kafka_pod_autoscaler.scaledresources;
 
 import com.google.auto.service.AutoService;
 
-import brandwatch.com.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
 import io.fabric8.kubernetes.api.model.GenericKubernetesResource;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.Resource;

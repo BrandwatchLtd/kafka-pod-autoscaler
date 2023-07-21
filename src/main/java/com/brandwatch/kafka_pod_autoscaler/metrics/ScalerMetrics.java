@@ -6,12 +6,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import brandwatch.com.v1alpha1.KafkaPodAutoscaler;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Tags;
 import lombok.NonNull;
 
 import com.brandwatch.kafka_pod_autoscaler.triggers.TriggerResult;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscaler;
 
 public class ScalerMetrics {
     private static final Map<String, ScalerMetrics> metrics = new ConcurrentHashMap<>();
