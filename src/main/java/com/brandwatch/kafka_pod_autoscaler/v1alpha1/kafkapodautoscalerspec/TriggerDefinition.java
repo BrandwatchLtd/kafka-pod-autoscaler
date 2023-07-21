@@ -14,17 +14,17 @@ import lombok.Getter;
 import lombok.Setter;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({"metadata","type"})
+@JsonPropertyOrder({"type", "metadata"})
 @JsonDeserialize
-public class Triggers implements KubernetesResource {
-    @Getter
-    @Setter
-    @JsonProperty("metadata")
-    @JsonSetter(nulls = Nulls.SKIP)
-    private Map<String, String> metadata;
+public class TriggerDefinition implements KubernetesResource {
     @Getter
     @Setter
     @JsonProperty("type")
     @JsonSetter(nulls = Nulls.SKIP)
     private String type;
+    @Getter
+    @Setter
+    @JsonProperty("metadata")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private Map<String, String> metadata;
 }

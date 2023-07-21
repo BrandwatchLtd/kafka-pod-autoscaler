@@ -33,7 +33,7 @@ import com.brandwatch.kafka_pod_autoscaler.triggers.TriggerResult;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscaler;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscalerStatus;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
-import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.Triggers;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.TriggerDefinition;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerstatus.TriggerResults;
 
 @Slf4j
@@ -186,7 +186,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
     }
 
     private TriggerResult calculateTriggerResult(KubernetesClient client, ScaledResource scaledResource,
-                                                 KafkaPodAutoscaler autoscaler, @NonNull Triggers trigger, int replicaCount) {
+                                                 KafkaPodAutoscaler autoscaler, @NonNull TriggerDefinition trigger, int replicaCount) {
         var type = trigger.getType();
         var processors = ServiceLoader.load(TriggerProcessor.class);
 

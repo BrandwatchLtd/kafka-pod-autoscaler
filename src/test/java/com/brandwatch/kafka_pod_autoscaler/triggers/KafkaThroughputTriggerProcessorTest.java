@@ -27,7 +27,7 @@ import com.brandwatch.kafka_pod_autoscaler.cache.KafkaMetadata;
 import com.brandwatch.kafka_pod_autoscaler.cache.KafkaMetadataCache;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscaler;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscalerSpec;
-import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.Triggers;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.TriggerDefinition;
 
 @ExtendWith(MockitoExtension.class)
 public class KafkaThroughputTriggerProcessorTest {
@@ -45,7 +45,7 @@ public class KafkaThroughputTriggerProcessorTest {
     @Mock
     private KafkaPodAutoscaler autoscaler;
     @Mock
-    private Triggers trigger;
+    private TriggerDefinition trigger;
 
     private final KafkaThroughputTriggerProcessor triggerProcessor = new KafkaThroughputTriggerProcessor();
 

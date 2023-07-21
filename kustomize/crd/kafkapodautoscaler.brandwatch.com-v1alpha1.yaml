@@ -44,12 +44,12 @@ spec:
               triggers:
                 items:
                   properties:
+                    type:
+                      type: string
                     metadata:
                       additionalProperties:
                         type: string
                       type: object
-                    type:
-                      type: string
                   type: object
                 type: array
             required:

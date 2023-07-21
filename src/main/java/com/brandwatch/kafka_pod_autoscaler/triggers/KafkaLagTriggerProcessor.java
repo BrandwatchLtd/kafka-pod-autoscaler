@@ -10,7 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import com.brandwatch.kafka_pod_autoscaler.ScaledResource;
 import com.brandwatch.kafka_pod_autoscaler.cache.KafkaMetadataCache;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscaler;
-import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.Triggers;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.TriggerDefinition;
 
 @Slf4j
 @AutoService(TriggerProcessor.class)
@@ -21,7 +21,7 @@ public class KafkaLagTriggerProcessor implements TriggerProcessor {
     }
 
     @Override
-    public TriggerResult process(KubernetesClient client, ScaledResource resource, KafkaPodAutoscaler autoscaler, Triggers trigger, int replicaCount) {
+    public TriggerResult process(KubernetesClient client, ScaledResource resource, KafkaPodAutoscaler autoscaler, TriggerDefinition trigger, int replicaCount) {
         var topic = autoscaler.getSpec().getTopicName();
         var bootstrapServers = autoscaler.getSpec().getBootstrapServers();
         var consumerGroupId = requireNonNull(trigger.getMetadata().get("consumerGroupId"));
