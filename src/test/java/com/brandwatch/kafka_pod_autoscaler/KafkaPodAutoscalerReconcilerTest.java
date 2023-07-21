@@ -22,12 +22,6 @@ import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import brandwatch.com.v1alpha1.KafkaPodAutoscaler;
-import brandwatch.com.v1alpha1.KafkaPodAutoscalerSpec;
-import brandwatch.com.v1alpha1.KafkaPodAutoscalerStatus;
-import brandwatch.com.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
-import brandwatch.com.v1alpha1.kafkapodautoscalerspec.Triggers;
-import brandwatch.com.v1alpha1.kafkapodautoscalerstatus.TriggerResults;
 import io.fabric8.kubernetes.api.model.Event;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
@@ -40,6 +34,12 @@ import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 
 import com.brandwatch.kafka_pod_autoscaler.metrics.ScalerMetrics;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscaler;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscalerSpec;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscalerStatus;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.Triggers;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerstatus.TriggerResults;
 
 @ExtendWith(MockitoExtension.class)
 public class KafkaPodAutoscalerReconcilerTest {

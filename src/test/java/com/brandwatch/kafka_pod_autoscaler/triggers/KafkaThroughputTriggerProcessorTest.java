@@ -20,14 +20,14 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import brandwatch.com.v1alpha1.KafkaPodAutoscaler;
-import brandwatch.com.v1alpha1.KafkaPodAutoscalerSpec;
-import brandwatch.com.v1alpha1.kafkapodautoscalerspec.Triggers;
 import io.fabric8.kubernetes.client.KubernetesClient;
 
 import com.brandwatch.kafka_pod_autoscaler.ScaledResource;
 import com.brandwatch.kafka_pod_autoscaler.cache.KafkaMetadata;
 import com.brandwatch.kafka_pod_autoscaler.cache.KafkaMetadataCache;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscaler;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscalerSpec;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.Triggers;
 
 @ExtendWith(MockitoExtension.class)
 public class KafkaThroughputTriggerProcessorTest {

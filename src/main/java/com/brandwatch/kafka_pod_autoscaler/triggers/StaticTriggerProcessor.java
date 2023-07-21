@@ -4,11 +4,11 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.auto.service.AutoService;
 
-import brandwatch.com.v1alpha1.KafkaPodAutoscaler;
-import brandwatch.com.v1alpha1.kafkapodautoscalerspec.Triggers;
 import io.fabric8.kubernetes.client.KubernetesClient;
 
 import com.brandwatch.kafka_pod_autoscaler.ScaledResource;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscaler;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.Triggers;
 
 @AutoService(TriggerProcessor.class)
 public class StaticTriggerProcessor implements TriggerProcessor {

@@ -4,7 +4,7 @@ import java.net.HttpURLConnection;
 
 import com.google.auto.service.AutoService;
 
-import brandwatch.com.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import lombok.extern.slf4j.Slf4j;
