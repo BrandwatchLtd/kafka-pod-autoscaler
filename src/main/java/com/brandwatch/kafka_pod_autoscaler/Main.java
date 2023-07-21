@@ -29,7 +29,8 @@ public class Main {
         Metrics.globalRegistry.add(registry);
         var leaderElectionConfiguration = new LeaderElectionConfiguration("kafka-pod-autoscaler");
         var client = new KubernetesClientBuilder().build();
-        Operator operator = new Operator(client, c -> c
+        Operator operator = new Operator(c -> c
+                .withKubernetesClient(client)
                 .withLeaderElectionConfiguration(leaderElectionConfiguration)
                 .withMetrics(MicrometerMetrics.withoutPerResourceMetrics(Metrics.globalRegistry))
         );

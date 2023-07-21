@@ -33,9 +33,6 @@ import com.google.cloud.tools.jib.api.DockerDaemonImage;
 import com.google.cloud.tools.jib.api.Jib;
 import com.google.cloud.tools.jib.api.RegistryImage;
 
-import brandwatch.com.v1alpha1.KafkaPodAutoscaler;
-import brandwatch.com.v1alpha1.KafkaPodAutoscalerSpec;
-import brandwatch.com.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
@@ -48,6 +45,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import com.brandwatch.kafka_pod_autoscaler.testing.FileConsumer;
 import com.brandwatch.kafka_pod_autoscaler.testing.KustomizeHelper;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscaler;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscalerSpec;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
 
 @Slf4j
 @Testcontainers(parallel = true)

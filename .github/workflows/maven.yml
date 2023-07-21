@@ -40,7 +40,16 @@ jobs:
         key: build-output-${{ github.sha }}
 
     - name: Build with Maven
-      run: mvn -B verify 
+      run: mvn -B verify
+
+    - name: Check for unstaged changes
+      run: |-
+        if [[ -z $(git status -s) ]]; then
+          echo "No unstaged changes"
+        else
+          echo "There are unstaged changes after the Maven build.  Did you check in the updated CRD?"
+          exit 1
+        fi
 
     # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
     - name: Update dependency graph
