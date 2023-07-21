@@ -14,7 +14,7 @@ import com.brandwatch.kafka_pod_autoscaler.cache.KafkaMetadataCache;
 
 @Slf4j
 @AutoService(TriggerProcessor.class)
-public class KafkaTriggerProcessor implements TriggerProcessor {
+public class KafkaLagTriggerProcessor implements TriggerProcessor {
     @Override
     public String getType() {
         return "kafka";
