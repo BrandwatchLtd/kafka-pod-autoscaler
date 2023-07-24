@@ -36,7 +36,7 @@ public class KafkaLagTriggerProcessor implements TriggerProcessor {
         var bootstrapServers = autoscaler.getSpec().getBootstrapServers();
         var consumerGroupId = requireNonNull(trigger.getMetadata().get("consumerGroupId"));
         var threshold = Integer.parseInt(requireNonNull(trigger.getMetadata().get("threshold")));
-        var sla = Duration.parse(Optional.ofNullable(trigger.getMetadata().get("sla")).orElse("P10M"));
+        var sla = Duration.parse(Optional.ofNullable(trigger.getMetadata().get("sla")).orElse("PT10M"));
 
         logger.debug("Requesting kafka metrics for topic={} and consumerGroupId={}", topic, consumerGroupId);
 
