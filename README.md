@@ -2,7 +2,16 @@
 
 An implementation of an Autoscaler specific to pods which run Kafka workloads. Kafka topics have a preset number of partitions, and consuming applications work best when all replicas consume the same number of partitions.
 
-For example, for a topic with 16 partitions the 'ideal' scaling for the number of replicas goes 1, 2, 4, 8, 16. This operator implements an autoscaler that will only scale to appropriate values for the number of partitions in a given topic. It supports a number of sources for scaling metrics: cpu, prometheus metrics and (of course) kafka lag.
+For example, for a topic with 16 partitions the 'ideal' scaling for the number of replicas goes 1, 2, 4, 8, 16. This 
+operator implements an autoscaler that will only scale to appropriate values for the number of partitions in a given 
+topic. It supports a number of sources for scaling metrics:
+* [cpu](src/main/java/com/brandwatch/kafka_pod_autoscaler/triggers/CpuTriggerProcessor.java): traditional 
+  cpu-metrics-based scaling, based on the last 5 minutes of readings
+* [prometheus metrics](src/main/java/com/brandwatch/kafka_pod_autoscaler/triggers/PrometheusTriggerProcessor.java)
+* [predicted kafka lag/throughput](src/main/java/com/brandwatch/kafka_pod_autoscaler/triggers/KafkaLagTriggerProcessor.
+  java): a predictive mode where the load while lagged is used to calculate the ideal number of replicas for the 
+  current throughput on the topic.  This is intended to ensure that even when not lagged the number of consumers is 
+  scaled appropriately for the current load, so lag is less likely to occur. 
 
 ## The KafkaPodAutoscaler CRD API
 
