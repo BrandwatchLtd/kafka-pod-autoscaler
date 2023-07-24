@@ -21,7 +21,7 @@ import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.Trigg
 @Slf4j
 @AutoService(TriggerProcessor.class)
 public class KafkaLagTriggerProcessor implements TriggerProcessor {
-    private final LoadingCache<TopicConsumerGroupId, LagMetrics> lagMetricsCache = Caffeine.newBuilder()
+    private static final LoadingCache<TopicConsumerGroupId, LagMetrics> lagMetricsCache = Caffeine.newBuilder()
         .expireAfterAccess(Duration.ofMinutes(10))
         .build(id -> new LagMetrics());
 
