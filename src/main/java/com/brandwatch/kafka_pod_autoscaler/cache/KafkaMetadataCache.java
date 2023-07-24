@@ -9,6 +9,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalListener;
+import com.google.common.annotations.VisibleForTesting;
 
 public class KafkaMetadataCache {
     private static final Cache<String, KafkaMetadata> adminClientCache = Caffeine.newBuilder()
@@ -32,7 +33,7 @@ public class KafkaMetadataCache {
         adminClientCache.invalidate(bootstrapServers);
     }
 
-    // @VisibleForTesting
+    @VisibleForTesting
     public static void put(String bootstrapServers, KafkaMetadata kafkaMetadata) {
         adminClientCache.put(bootstrapServers, kafkaMetadata);
     }

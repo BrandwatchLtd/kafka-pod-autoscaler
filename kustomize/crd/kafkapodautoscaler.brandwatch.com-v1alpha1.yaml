@@ -44,12 +44,12 @@ spec:
               triggers:
                 items:
                   properties:
+                    type:
+                      type: string
                     metadata:
                       additionalProperties:
                         type: string
                       type: object
-                    type:
-                      type: string
                   type: object
                 type: array
             required:
@@ -80,11 +80,11 @@ spec:
                 items:
                   properties:
                     inputValue:
-                      type: integer
+                      type: number
                     recommendedReplicas:
                       type: integer
                     targetThreshold:
-                      type: integer
+                      type: number
                     type:
                       type: string
                   type: object

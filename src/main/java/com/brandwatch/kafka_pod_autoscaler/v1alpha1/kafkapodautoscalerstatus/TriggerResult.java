@@ -14,13 +14,13 @@ import lombok.Setter;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({"inputValue","recommendedReplicas","targetThreshold","type"})
 @JsonDeserialize
-public class TriggerResults implements KubernetesResource {
+public class TriggerResult implements KubernetesResource {
 
     @Getter
     @Setter
     @JsonProperty("inputValue")
     @JsonSetter(nulls = Nulls.SKIP)
-    private Long inputValue;
+    private Double inputValue;
     @Getter
     @Setter
     @JsonProperty("recommendedReplicas")
@@ -30,7 +30,7 @@ public class TriggerResults implements KubernetesResource {
     @Setter
     @JsonProperty("targetThreshold")
     @JsonSetter(nulls = Nulls.SKIP)
-    private Long targetThreshold;
+    private Double targetThreshold;
     @Getter
     @Setter
     @JsonProperty("type")

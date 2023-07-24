@@ -11,6 +11,8 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.ServiceLoader;
 
+import com.google.common.annotations.VisibleForTesting;
+
 import io.fabric8.kubernetes.api.model.EventBuilder;
 import io.fabric8.kubernetes.api.model.MicroTime;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
@@ -27,12 +29,11 @@ import lombok.extern.slf4j.Slf4j;
 import com.brandwatch.kafka_pod_autoscaler.metrics.ScalerMetrics;
 import com.brandwatch.kafka_pod_autoscaler.scaledresources.GenericScaledResourceFactory;
 import com.brandwatch.kafka_pod_autoscaler.triggers.TriggerProcessor;
-import com.brandwatch.kafka_pod_autoscaler.triggers.TriggerResult;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscaler;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscalerStatus;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
-import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.Triggers;
-import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerstatus.TriggerResults;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.TriggerDefinition;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerstatus.TriggerResult;
 
 @Slf4j
 @ControllerConfiguration
@@ -46,7 +47,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         this(partitionCountFetcher, Clock.systemUTC());
     }
 
-    // VisibleForTesting
+    @VisibleForTesting
     KafkaPodAutoscalerReconciler(PartitionCountFetcher partitionCountFetcher, Clock clock) {
         this.partitionCountFetcher = partitionCountFetcher;
         this.clock = clock;
@@ -183,8 +184,8 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         ));
     }
 
-    private TriggerResult calculateTriggerResult(KubernetesClient client, ScaledResource scaledResource,
-                                                 KafkaPodAutoscaler autoscaler, @NonNull Triggers trigger, int replicaCount) {
+    private com.brandwatch.kafka_pod_autoscaler.triggers.TriggerResult calculateTriggerResult(KubernetesClient client, ScaledResource scaledResource,
+                                                                                              KafkaPodAutoscaler autoscaler, @NonNull TriggerDefinition trigger, int replicaCount) {
         var type = trigger.getType();
         var processors = ServiceLoader.load(TriggerProcessor.class);
 
@@ -280,8 +281,8 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
             }
         }
 
-        public void recordTriggerResult(TriggerResult result, int recommendedReplicas) {
-            var triggerResults = new TriggerResults();
+        public void recordTriggerResult(com.brandwatch.kafka_pod_autoscaler.triggers.TriggerResult result, int recommendedReplicas) {
+            var triggerResults = new TriggerResult();
             triggerResults.setType(result.trigger().getType());
             triggerResults.setInputValue(result.inputValue());
             triggerResults.setTargetThreshold(result.targetThreshold());

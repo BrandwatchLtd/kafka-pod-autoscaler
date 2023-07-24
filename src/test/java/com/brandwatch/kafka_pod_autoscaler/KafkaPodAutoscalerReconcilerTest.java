@@ -38,8 +38,8 @@ import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscaler;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscalerSpec;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscalerStatus;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
-import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.Triggers;
-import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerstatus.TriggerResults;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.TriggerDefinition;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerstatus.TriggerResult;
 
 @ExtendWith(MockitoExtension.class)
 public class KafkaPodAutoscalerReconcilerTest {
@@ -153,7 +153,7 @@ public class KafkaPodAutoscalerReconcilerTest {
 
     @Test
     public void scaledWithinCooloff() {
-        var staticTrigger = new Triggers();
+        var staticTrigger = new TriggerDefinition();
         staticTrigger.setType("static");
         staticTrigger.setMetadata(Map.of("replicas", "3"));
         kpa.getSpec().setTriggers(List.of(
@@ -192,7 +192,7 @@ public class KafkaPodAutoscalerReconcilerTest {
 
     @Test
     public void returnsToOriginalScalingWithinCooloff() {
-        var staticTrigger = new Triggers();
+        var staticTrigger = new TriggerDefinition();
         staticTrigger.setType("static");
         staticTrigger.setMetadata(Map.of("replicas", "3"));
         kpa.getSpec().setTriggers(List.of(
@@ -230,7 +230,7 @@ public class KafkaPodAutoscalerReconcilerTest {
 
     @Test
     public void coolOffPeriodExpires() {
-        var staticTrigger = new Triggers();
+        var staticTrigger = new TriggerDefinition();
         staticTrigger.setType("static");
         staticTrigger.setMetadata(Map.of("replicas", "3"));
         kpa.getSpec().setTriggers(List.of(
@@ -296,7 +296,7 @@ public class KafkaPodAutoscalerReconcilerTest {
 
     @Test
     public void canScale_withNoKafkaConfig_staticTriggers() {
-        var staticTrigger = new Triggers();
+        var staticTrigger = new TriggerDefinition();
         staticTrigger.setType("static");
         staticTrigger.setMetadata(Map.of("replicas", "3"));
         kpa.getSpec().setTriggers(List.of(
@@ -327,7 +327,7 @@ public class KafkaPodAutoscalerReconcilerTest {
 
     @Test
     public void canScale_withKafkaConfig_staticTriggers() {
-        var staticTrigger = new Triggers();
+        var staticTrigger = new TriggerDefinition();
         staticTrigger.setType("static");
         staticTrigger.setMetadata(Map.of("replicas", "3"));
         kpa.getSpec().setTriggers(List.of(
@@ -363,10 +363,10 @@ public class KafkaPodAutoscalerReconcilerTest {
 
     @Test
     public void canScale_withKafkaConfig_multipleStaticTriggers() {
-        var staticTrigger1 = new Triggers();
+        var staticTrigger1 = new TriggerDefinition();
         staticTrigger1.setType("static");
         staticTrigger1.setMetadata(Map.of("replicas", "2"));
-        var staticTrigger2 = new Triggers();
+        var staticTrigger2 = new TriggerDefinition();
         staticTrigger2.setType("static");
         staticTrigger2.setMetadata(Map.of("replicas", "3"));
         kpa.getSpec().setTriggers(List.of(
@@ -402,7 +402,7 @@ public class KafkaPodAutoscalerReconcilerTest {
         assertThat(metrics.isScalable()).isEqualTo(true);
     }
 
-    private void assertTriggerResults(UpdateControl<KafkaPodAutoscaler> updateControl, List<TriggerResults> expectedResults) {
+    private void assertTriggerResults(UpdateControl<KafkaPodAutoscaler> updateControl, List<TriggerResult> expectedResults) {
         var triggerResults = updateControl.getResource().getStatus().getTriggerResults();
 
         assertThat(triggerResults).hasSize(expectedResults.size());
@@ -418,8 +418,8 @@ public class KafkaPodAutoscalerReconcilerTest {
         }
     }
 
-    private static TriggerResults createTriggerResultDTO(String type, long inputValue, long targetThreshold, int recommendedReplicas) {
-        var triggerResults = new TriggerResults();
+    private static TriggerResult createTriggerResultDTO(String type, double inputValue, double targetThreshold, int recommendedReplicas) {
+        var triggerResults = new TriggerResult();
 
         triggerResults.setType(type);
         triggerResults.setInputValue(inputValue);

@@ -23,10 +23,10 @@ spec:
   triggers:
     - type: static # for testing
       metadata:
-        replicas: 2
+        replicas: [Required]
     - type: cpu
       metadata:
-        threshold: 
+        threshold: [Required]
     - type: prometheus
       metadata:
         serverAddress: 
@@ -37,8 +37,9 @@ spec:
         threshold: 
     - type: kafka
       metadata:
-        consumerGroupId:
-        threshold: 
+        consumerGroupId: [Required]
+        threshold: [Required] 
+        sla: P10M
 ```
 
 

@@ -6,6 +6,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.google.common.util.concurrent.AtomicDouble;
+
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Tags;
 import lombok.NonNull;
@@ -23,8 +25,8 @@ public class ScalerMetrics {
     private final AtomicInteger dryRunReplicas;
     private final AtomicLong lastScale;
     private final AtomicInteger scalable;
-    private final Map<String, AtomicLong> triggerValueMetrics = new ConcurrentHashMap<>();
-    private final Map<String, AtomicLong> triggerThresholdMetrics = new ConcurrentHashMap<>();
+    private final Map<String, AtomicDouble> triggerValueMetrics = new ConcurrentHashMap<>();
+    private final Map<String, AtomicDouble> triggerThresholdMetrics = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> triggerReplicaMetrics = new ConcurrentHashMap<>();
 
     public ScalerMetrics(@NonNull KafkaPodAutoscaler kpa) {
@@ -84,13 +86,13 @@ public class ScalerMetrics {
         triggerValueMetrics.computeIfAbsent(result.trigger().getType(),
                                             type -> {
                                                 var typeTags = tags.and("type", type);
-                                                return Metrics.gauge("kpa_trigger_value", typeTags, new AtomicLong());
+                                                return Metrics.gauge("kpa_trigger_value", typeTags, new AtomicDouble());
                                             })
                            .set(result.inputValue());
         triggerThresholdMetrics.computeIfAbsent(result.trigger().getType(),
                                                 type -> {
                                                     var typeTags = tags.and("type", type);
-                                                    return Metrics.gauge("kpa_trigger_threshold", typeTags, new AtomicLong());
+                                                    return Metrics.gauge("kpa_trigger_threshold", typeTags, new AtomicDouble());
                                                 })
                                .set(result.targetThreshold());
         triggerReplicaMetrics.computeIfAbsent(result.trigger().getType(),

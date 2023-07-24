@@ -8,7 +8,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 
 import com.brandwatch.kafka_pod_autoscaler.ScaledResource;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscaler;
-import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.Triggers;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.TriggerDefinition;
 
 @AutoService(TriggerProcessor.class)
 public class StaticTriggerProcessor implements TriggerProcessor {
@@ -18,7 +18,7 @@ public class StaticTriggerProcessor implements TriggerProcessor {
     }
 
     @Override
-    public TriggerResult process(KubernetesClient client, ScaledResource resource, KafkaPodAutoscaler autoscaler, Triggers trigger, int replicaCount) {
+    public TriggerResult process(KubernetesClient client, ScaledResource resource, KafkaPodAutoscaler autoscaler, TriggerDefinition trigger, int replicaCount) {
         var replicas = Integer.parseInt(requireNonNull(trigger.getMetadata().get("replicas")));
         return new TriggerResult(trigger, replicas, replicaCount);
     }

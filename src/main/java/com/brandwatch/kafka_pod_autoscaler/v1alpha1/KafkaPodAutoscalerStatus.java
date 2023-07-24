@@ -15,7 +15,7 @@ import io.fabric8.kubernetes.client.utils.Serialization;
 import lombok.Getter;
 import lombok.Setter;
 
-import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerstatus.TriggerResults;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerstatus.TriggerResult;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({"calculatedReplicaCount","currentReplicaCount","dryRunReplicas","finalReplicaCount","lastScale","message","partitionCount","timestamp","triggerResults"})
@@ -74,5 +74,5 @@ public class KafkaPodAutoscalerStatus implements KubernetesResource {
     @Setter
     @JsonProperty("triggerResults")
     @JsonSetter(nulls = Nulls.SKIP)
-    private List<TriggerResults> triggerResults = Serialization.unmarshal("[]", List.class);
+    private List<TriggerResult> triggerResults = Serialization.unmarshal("[]", List.class);
 }

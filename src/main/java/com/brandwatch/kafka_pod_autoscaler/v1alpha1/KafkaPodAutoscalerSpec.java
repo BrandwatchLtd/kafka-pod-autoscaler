@@ -16,7 +16,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
-import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.Triggers;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.TriggerDefinition;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({"bootstrapServers","cooloffSeconds","dryRun","scaleTargetRef","topicName","triggers"})
@@ -54,5 +54,5 @@ public class KafkaPodAutoscalerSpec implements KubernetesResource {
     @JsonProperty("triggers")
     @Required
     @JsonSetter(nulls = Nulls.SKIP)
-    private List<Triggers> triggers = Serialization.unmarshal("[]", List.class);
+    private List<TriggerDefinition> triggers = Serialization.unmarshal("[]", List.class);
 }
