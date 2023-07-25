@@ -35,7 +35,7 @@ public class LagMetrics {
         this.offsetRetention = offsetRetention;
     }
 
-    public double calculateConsumerRate(int replicaCount, Map<TopicPartition, Long> consumerOffsets) {
+    public OptionalDouble calculateConsumerRate(int replicaCount, Map<TopicPartition, Long> consumerOffsets) {
         var historicalOffsets = historicalConsumerOffsets.get(replicaCount);
 
         // Choose the replicaCount "nearest" to this one if missing
@@ -46,21 +46,21 @@ public class LagMetrics {
         }
 
         if (historicalOffsets == null) {
-            return 0;
+            return OptionalDouble.empty();
         }
 
         // If we chose an alternative replica count, we need to scale it to match this replica count
         var scaleFactor = (substituteReplicaCount / (double) replicaCount);
         return calculateRate(historicalOffsets, new RecordedOffsets(clock.getAsLong(), consumerOffsets))
-            .orElse(0) * scaleFactor;
+            .stream().map(d -> d * scaleFactor).findFirst();
     }
 
-    public double calculateAndRecordTopicRate(Map<TopicPartition, Long> topicEndOffsets) {
+    public OptionalDouble calculateAndRecordTopicRate(Map<TopicPartition, Long> topicEndOffsets) {
         var offsetsToRecord = new RecordedOffsets(clock.getAsLong(), topicEndOffsets);
         var rate = calculateRate(historicalEndOffsets, offsetsToRecord);
         historicalEndOffsets.add(offsetsToRecord);
         pruneOffsets(historicalEndOffsets);
-        return rate.orElse(0);
+        return rate;
     }
 
     public OptionalDouble estimateLoadedConsumerRate(int replicaCount) {

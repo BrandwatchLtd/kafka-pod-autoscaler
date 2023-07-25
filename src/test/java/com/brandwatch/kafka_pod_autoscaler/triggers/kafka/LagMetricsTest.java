@@ -39,7 +39,7 @@ public class LagMetricsTest {
                                       List<Map<TopicPartition, Long>> previousConsumerOffsets,
                                       Map<TopicPartition, Long> consumerOffsets,
                                       int calculateUsingReplicaCount,
-                                      double expectedConsumerRate) {
+                                      OptionalDouble expectedConsumerRate) {
         var clock = new AtomicLong(NOW.toEpochMilli());
         var lagMetrics = new LagMetrics(clock::get);
 
@@ -54,11 +54,11 @@ public class LagMetricsTest {
 
     public static Stream<Arguments> calculateConsumerRate() {
         return Stream.of(
-            Arguments.of(1, List.of(), OFFSETS_1, 1, 0D),
-            Arguments.of(1, List.of(OFFSETS_1), OFFSETS_1, 1, 0D),
-            Arguments.of(1, List.of(OFFSETS_1), OFFSETS_2, 1, 1D),
-            Arguments.of(1, List.of(OFFSETS_1), OFFSETS_2, 2, 0.5D),
-            Arguments.of(2, List.of(OFFSETS_1), OFFSETS_2, 1, 2D)
+            Arguments.of(1, List.of(), OFFSETS_1, 1, OptionalDouble.empty()),
+            Arguments.of(1, List.of(OFFSETS_1), OFFSETS_1, 1, OptionalDouble.empty()),
+            Arguments.of(1, List.of(OFFSETS_1), OFFSETS_2, 1, OptionalDouble.of(1D)),
+            Arguments.of(1, List.of(OFFSETS_1), OFFSETS_2, 2, OptionalDouble.of(0.5D)),
+            Arguments.of(2, List.of(OFFSETS_1), OFFSETS_2, 1, OptionalDouble.of(2D))
         );
     }
 
@@ -95,7 +95,7 @@ public class LagMetricsTest {
     @MethodSource
     public void calculateAndRecordTopicRate(List<Map<TopicPartition, Long>> previousTopicEndOffsets,
                                       Map<TopicPartition, Long> topicEndOffsets,
-                                      double expectedTopicRate) {
+                                      OptionalDouble expectedTopicRate) {
         var clock = new AtomicLong(NOW.toEpochMilli());
         var lagMetrics = new LagMetrics(clock::get);
 
@@ -110,9 +110,9 @@ public class LagMetricsTest {
 
     public static Stream<Arguments> calculateAndRecordTopicRate() {
         return Stream.of(
-            Arguments.of(List.of(), OFFSETS_1, 0D),
-            Arguments.of(List.of(OFFSETS_1), OFFSETS_1, 0D),
-            Arguments.of(List.of(OFFSETS_1), OFFSETS_2, 1D)
+            Arguments.of(List.of(), OFFSETS_1, OptionalDouble.empty()),
+            Arguments.of(List.of(OFFSETS_1), OFFSETS_1, OptionalDouble.empty()),
+            Arguments.of(List.of(OFFSETS_1), OFFSETS_2, OptionalDouble.of(1D))
         );
     }
 }
