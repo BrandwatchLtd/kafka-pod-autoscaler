@@ -51,7 +51,7 @@ public class KafkaLagTriggerProcessor implements TriggerProcessor {
                 .sum();
 
             double consumerRate;
-            var targetRate = lagMetrics.calculateAndRecordTopicRate(topicEndOffsets);
+            var targetRate = lagMetrics.calculateAndRecordTopicRate(topicEndOffsets).orElse(0);
             if (lag < threshold) {
                 // ensure the consumers are fast enough to keep up and not start lagging, at this rate
                 consumerRate = lagMetrics.estimateLoadedConsumerRate(replicaCount).orElse(targetRate);
@@ -60,7 +60,7 @@ public class KafkaLagTriggerProcessor implements TriggerProcessor {
                 // We're usually dealing in scaling _up_ until the values meet, but in this case we want to scale _down_ (potentially)
                 return new TriggerResult(trigger, targetRate, consumerRate);
             } else {
-                consumerRate = lagMetrics.calculateConsumerRate(replicaCount, consumerOffsets);
+                consumerRate = lagMetrics.calculateConsumerRate(replicaCount, consumerOffsets).orElse(0);
                 // Record this consumer rate as a rate-under-load, so we can use it to calculate the ideal replica count when not lagged
                 lagMetrics.recordConsumerRate(replicaCount, consumerOffsets);
 
