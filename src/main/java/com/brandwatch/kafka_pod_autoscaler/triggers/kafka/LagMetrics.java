@@ -132,9 +132,13 @@ public class LagMetrics {
                 continue;
             }
             var partitionOffsetDelta = (latestOffsets.offsets().get(partition) - earliestOffsets.offsets().get(partition));
-            if (partitionOffsetDelta < smallestOffsetDelta) {
+            if (partitionOffsetDelta > 0 && partitionOffsetDelta < smallestOffsetDelta) {
                 smallestOffsetDelta = partitionOffsetDelta;
             }
+        }
+
+        if (smallestOffsetDelta == Long.MAX_VALUE) {
+            return OptionalDouble.empty();
         }
 
         // Return the consumption rate in ops/sec
