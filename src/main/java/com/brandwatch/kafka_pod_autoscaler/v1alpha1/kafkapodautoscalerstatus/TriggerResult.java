@@ -15,7 +15,6 @@ import lombok.Setter;
 @JsonPropertyOrder({"inputValue","recommendedReplicas","targetThreshold","type"})
 @JsonDeserialize
 public class TriggerResult implements KubernetesResource {
-
     @Getter
     @Setter
     @JsonProperty("inputValue")
@@ -36,4 +35,8 @@ public class TriggerResult implements KubernetesResource {
     @JsonProperty("type")
     @JsonSetter(nulls = Nulls.SKIP)
     private String type;
+    @Getter
+    @Setter
+    @JsonProperty("inverted")
+    private boolean inverted;
 }

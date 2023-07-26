@@ -113,6 +113,8 @@ spec:
                       type: number
                     type:
                       type: string
+                    inverted:
+                      type: boolean
                   type: object
                 type: array
             type: object

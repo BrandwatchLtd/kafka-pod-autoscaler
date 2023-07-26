@@ -284,6 +284,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         public void recordTriggerResult(com.brandwatch.kafka_pod_autoscaler.triggers.TriggerResult result, int recommendedReplicas) {
             var triggerResults = new TriggerResult();
             triggerResults.setType(result.trigger().getType());
+            triggerResults.setInverted(result.inverted());
             triggerResults.setInputValue(result.inputValue());
             triggerResults.setTargetThreshold(result.targetThreshold());
             triggerResults.setRecommendedReplicas(recommendedReplicas);
