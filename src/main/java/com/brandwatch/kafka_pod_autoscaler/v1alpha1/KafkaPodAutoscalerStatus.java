@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import io.fabric8.kubernetes.api.model.KubernetesResource;
 import io.fabric8.kubernetes.client.utils.Serialization;
+import io.fabric8.kubernetes.model.annotation.PrinterColumn;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -31,6 +32,7 @@ public class KafkaPodAutoscalerStatus implements KubernetesResource {
     @Setter
     @JsonProperty("currentReplicaCount")
     @JsonSetter(nulls = Nulls.SKIP)
+    @PrinterColumn(name = "Replicas")
     private Integer currentReplicaCount;
     @Getter
     @Setter
@@ -50,16 +52,19 @@ public class KafkaPodAutoscalerStatus implements KubernetesResource {
     @JsonProperty("lastScale")
     @JsonPropertyDescription("The date and time that this message was added")
     @JsonSetter(nulls = Nulls.SKIP)
+    @PrinterColumn(name = "Last Scale")
     private String lastScale;
     @Getter
     @Setter
     @JsonProperty("message")
     @JsonSetter(nulls = Nulls.SKIP)
+    @PrinterColumn(name = "Message")
     private String message;
     @Getter
     @Setter
     @JsonProperty("partitionCount")
     @JsonSetter(nulls = Nulls.SKIP)
+    @PrinterColumn(name = "Partition Count")
     private Integer partitionCount;
     /**
      * The date and time that this message was added

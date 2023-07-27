@@ -14,7 +14,33 @@ spec:
     singular: kafkapodautoscaler
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.scaleTargetRef.kind
+      name: Target Kind
+      priority: 0
+      type: string
+    - jsonPath: .spec.scaleTargetRef.name
+      name: Target Name
+      priority: 0
+      type: string
+    - jsonPath: .status.currentReplicaCount
+      name: Replicas
+      priority: 0
+      type: integer
+    - description: The date and time that this message was added
+      jsonPath: .status.lastScale
+      name: Last Scale
+      priority: 0
+      type: string
+    - jsonPath: .status.message
+      name: Message
+      priority: 0
+      type: string
+    - jsonPath: .status.partitionCount
+      name: Partition Count
+      priority: 0
+      type: integer
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         properties:

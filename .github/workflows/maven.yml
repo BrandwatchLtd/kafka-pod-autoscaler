@@ -47,6 +47,8 @@ jobs:
           echo "No unstaged changes"
         else
           echo "There are unstaged changes after the Maven build.  Did you check in the updated CRD?"
+          git status
+          git diff
           exit 1
         fi
 

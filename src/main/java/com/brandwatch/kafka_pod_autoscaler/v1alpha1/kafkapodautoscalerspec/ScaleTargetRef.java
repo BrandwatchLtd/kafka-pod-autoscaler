@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import io.fabric8.generator.annotation.Required;
 import io.fabric8.kubernetes.api.model.KubernetesResource;
+import io.fabric8.kubernetes.model.annotation.PrinterColumn;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -27,11 +28,13 @@ public class ScaleTargetRef implements KubernetesResource {
     @JsonProperty("kind")
     @Required
     @JsonSetter(nulls = Nulls.SKIP)
+    @PrinterColumn(name = "Target Kind")
     private String kind = "Deployment";
     @Getter
     @Setter
     @JsonProperty("name")
     @Required
     @JsonSetter(nulls = Nulls.SKIP)
+    @PrinterColumn(name = "Target Name")
     private String name;
 }
