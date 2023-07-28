@@ -10,9 +10,9 @@ import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
+import io.fabric8.crd.generator.annotation.PrinterColumn;
 import io.fabric8.kubernetes.api.model.KubernetesResource;
 import io.fabric8.kubernetes.client.utils.Serialization;
-import io.fabric8.kubernetes.model.annotation.PrinterColumn;
 import lombok.Getter;
 import lombok.Setter;
 
