@@ -55,10 +55,6 @@ public class KafkaLagTriggerProcessor implements TriggerProcessor {
             if (lag < threshold) {
                 // ensure the consumers are fast enough to keep up and not start lagging, at this rate
                 consumerRate = lagMetrics.estimateLoadedConsumerRate(replicaCount, consumerOffsets).orElse(targetRate);
-
-                // Invert the TriggerResult
-                // We're usually dealing in scaling _up_ until the values meet, but in this case we want to scale _down_
-                return TriggerResult.inverted(trigger, consumerRate, targetRate);
             } else {
                 consumerRate = lagMetrics.calculateConsumerRate(replicaCount, consumerOffsets).orElse(0);
                 // Record this consumer rate as a rate-under-load, so we can use it to calculate the ideal replica count when not lagged
@@ -67,9 +63,10 @@ public class KafkaLagTriggerProcessor implements TriggerProcessor {
                 // We need to catch up, so calculate a target rate that will clear the lag within the SLA
                 var rateRequiredToClearLag = lag / (double) sla.toSeconds();
                 targetRate = targetRate + rateRequiredToClearLag;
-
-                return new TriggerResult(trigger, consumerRate, targetRate);
             }
+            // Invert the TriggerResult
+            // We're usually dealing in scaling _up_ until the values meet, but in this case we want to scale _down_
+            return TriggerResult.inverted(trigger, consumerRate, targetRate);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
