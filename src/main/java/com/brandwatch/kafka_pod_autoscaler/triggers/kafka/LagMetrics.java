@@ -26,7 +26,7 @@ public class LagMetrics {
 
     @VisibleForTesting
     LagMetrics(LongSupplier clock) {
-        this(clock, Duration.ofMinutes(5));
+        this(clock, Duration.ofMinutes(60));
     }
 
     @VisibleForTesting
