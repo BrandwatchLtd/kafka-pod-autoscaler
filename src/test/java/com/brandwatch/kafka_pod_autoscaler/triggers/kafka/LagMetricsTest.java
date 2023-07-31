@@ -32,6 +32,12 @@ public class LagMetricsTest {
         PARTITION_3, 1L,
         PARTITION_4, 1L
     );
+    private static final Map<TopicPartition, Long> OFFSETS_3 = Map.of(
+        PARTITION_1, 2L,
+        PARTITION_2, 2L,
+        PARTITION_3, 2L,
+        PARTITION_4, 2L
+    );
 
     @ParameterizedTest
     @MethodSource
@@ -66,6 +72,7 @@ public class LagMetricsTest {
     @MethodSource
     public void estimateLoadedConsumerRate(int previousReplicaCount,
                                       List<Map<TopicPartition, Long>> previousConsumerOffsets,
+                                      Map<TopicPartition, Long> consumerOffsets,
                                       int calculateUsingReplicaCount,
                                       OptionalDouble expectedConsumerRate) {
         var clock = new AtomicLong(NOW.toEpochMilli());
@@ -76,18 +83,20 @@ public class LagMetricsTest {
             clock.addAndGet(1_000);
         }
 
-        var consumerRate = lagMetrics.estimateLoadedConsumerRate(calculateUsingReplicaCount);
+        var consumerRate = lagMetrics.estimateLoadedConsumerRate(calculateUsingReplicaCount, consumerOffsets);
         assertThat(consumerRate).isEqualTo(expectedConsumerRate);
     }
 
     public static Stream<Arguments> estimateLoadedConsumerRate() {
         return Stream.of(
-            Arguments.of(1, List.of(), 1, OptionalDouble.empty()),
-            Arguments.of(1, List.of(OFFSETS_1), 1, OptionalDouble.empty()),
-            Arguments.of(1, List.of(OFFSETS_1, OFFSETS_1), 1, OptionalDouble.empty()),
-            Arguments.of(1, List.of(OFFSETS_1, OFFSETS_2), 1, OptionalDouble.of(1D)),
-            Arguments.of(1, List.of(OFFSETS_1, OFFSETS_2), 2, OptionalDouble.of(0.5D)),
-            Arguments.of(2, List.of(OFFSETS_1, OFFSETS_2), 1, OptionalDouble.of(2D))
+            Arguments.of(1, List.of(), OFFSETS_1, 1, OptionalDouble.empty()),
+            Arguments.of(1, List.of(OFFSETS_1), OFFSETS_1, 1, OptionalDouble.empty()),
+            Arguments.of(1, List.of(OFFSETS_1), OFFSETS_2, 1, OptionalDouble.of(1D)),
+            Arguments.of(1, List.of(OFFSETS_1), OFFSETS_2, 2, OptionalDouble.of(0.5D)),
+            Arguments.of(1, List.of(OFFSETS_1, OFFSETS_1), OFFSETS_1, 1, OptionalDouble.empty()),
+            Arguments.of(1, List.of(OFFSETS_1, OFFSETS_2), OFFSETS_2, 1, OptionalDouble.of(1D)),
+            Arguments.of(1, List.of(OFFSETS_1, OFFSETS_2), OFFSETS_2, 2, OptionalDouble.of(0.5D)),
+            Arguments.of(2, List.of(OFFSETS_1, OFFSETS_2), OFFSETS_2, 1, OptionalDouble.of(2D))
         );
     }
 
