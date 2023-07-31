@@ -63,7 +63,7 @@ public class LagMetrics {
         return rate;
     }
 
-    public OptionalDouble estimateLoadedConsumerRate(int replicaCount) {
+    public OptionalDouble estimateLoadedConsumerRate(int replicaCount, Map<TopicPartition, Long> consumerOffsets) {
         var historicalOffsets = historicalConsumerOffsets.get(replicaCount);
 
         // Choose the replicaCount "nearest" to this one if missing
@@ -79,7 +79,20 @@ public class LagMetrics {
 
         // If we chose an alternative replica count, we need to scale it to match this replica count
         var scaleFactor = (substituteReplicaCount / (double) replicaCount);
-        return calculateRate(historicalOffsets).stream().map(d -> d * scaleFactor).findFirst();
+        var estimatedRate = calculateRate(historicalOffsets).stream().map(d -> d * scaleFactor).findFirst();
+        var currentRate = calculateConsumerRate(replicaCount, consumerOffsets);
+
+        if (currentRate.isPresent()) {
+            if (currentRate.getAsDouble() > estimatedRate.orElse(0)) {
+                // If the current rate is faster than the estimated rate, then update our estimates
+                recordConsumerRate(replicaCount, consumerOffsets);
+                return currentRate;
+            }
+            return estimatedRate;
+        } else if (estimatedRate.isEmpty()) {
+            return currentRate;
+        }
+        return estimatedRate;
     }
 
     private int findNearestReplicaCountTo(int replicaCount) {
