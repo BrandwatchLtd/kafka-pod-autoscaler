@@ -68,7 +68,7 @@ public class KafkaLagTriggerProcessor implements TriggerProcessor {
                 var rateRequiredToClearLag = lag / (double) sla.toSeconds();
                 targetRate = targetRate + rateRequiredToClearLag;
 
-                return new TriggerResult(trigger, consumerRate, targetRate);
+                return TriggerResult.inverted(trigger, consumerRate, targetRate);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
