@@ -53,6 +53,9 @@ public class TopicConsumerStats {
     }
 
     public OptionalDouble getTopicRate() {
+        if (historicalTopicRates.getN() < 3) {
+            return OptionalDouble.empty();
+        }
         var rate = historicalTopicRates.getPercentile(99D);
 
         if (!Double.isFinite(rate)) {
@@ -63,6 +66,9 @@ public class TopicConsumerStats {
     }
 
     public OptionalDouble estimateConsumerRate(int replicaCount) {
+        if (historicalConsumerRates.getN() < 3) {
+            return OptionalDouble.empty();
+        }
         var rate = historicalConsumerRates.getPercentile(99D);
 
         if (!Double.isFinite(rate)) {
