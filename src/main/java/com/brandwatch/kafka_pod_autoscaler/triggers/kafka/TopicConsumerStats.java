@@ -10,6 +10,7 @@ import org.apache.kafka.common.TopicPartition;
 import com.google.common.annotations.VisibleForTesting;
 
 import lombok.Getter;
+import lombok.Setter;
 
 public class TopicConsumerStats {
     private final LongSupplier clock;
@@ -20,6 +21,18 @@ public class TopicConsumerStats {
     private RecordedOffsets topicEndOffsets;
     private final SynchronizedDescriptiveStatistics historicalConsumerRates = new SynchronizedDescriptiveStatistics();
     private final SynchronizedDescriptiveStatistics historicalTopicRates = new SynchronizedDescriptiveStatistics();
+    @Getter
+    @Setter
+    private long minimumConsumerRateMeasurements;
+    @Getter
+    @Setter
+    private double consumerRatePercentile;
+    @Getter
+    @Setter
+    private double topicRatePercentile;
+    @Getter
+    @Setter
+    private long minimumTopicRateMeasurements;
 
     public TopicConsumerStats() {
         this(System::currentTimeMillis);
@@ -30,6 +43,15 @@ public class TopicConsumerStats {
         this.clock = clock;
         this.historicalConsumerRates.setWindowSize(360);
         this.historicalTopicRates.setWindowSize(360);
+    }
+
+    public int getWindowSize() {
+        return this.historicalConsumerRates.getWindowSize();
+    }
+
+    public void setWindowSize(int windowSize) {
+        this.historicalConsumerRates.setWindowSize(windowSize);
+        this.historicalTopicRates.setWindowSize(windowSize);
     }
 
     public void update(int replicaCount, Map<TopicPartition, Long> consumerOffsets, Map<TopicPartition, Long> topicEndOffsets) {
@@ -53,7 +75,10 @@ public class TopicConsumerStats {
     }
 
     public OptionalDouble getTopicRate() {
-        var rate = historicalTopicRates.getPercentile(99D);
+        if (historicalTopicRates.getN() < minimumTopicRateMeasurements) {
+            return OptionalDouble.empty();
+        }
+        var rate = historicalTopicRates.getPercentile(topicRatePercentile);
 
         if (!Double.isFinite(rate)) {
             return OptionalDouble.empty();
@@ -63,7 +88,10 @@ public class TopicConsumerStats {
     }
 
     public OptionalDouble estimateConsumerRate(int replicaCount) {
-        var rate = historicalConsumerRates.getPercentile(99D);
+        if (historicalConsumerRates.getN() < minimumConsumerRateMeasurements) {
+            return OptionalDouble.empty();
+        }
+        var rate = historicalConsumerRates.getPercentile(consumerRatePercentile);
 
         if (!Double.isFinite(rate)) {
             return OptionalDouble.empty();
