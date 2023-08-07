@@ -37,10 +37,23 @@ public class KafkaLagTriggerProcessor implements TriggerProcessor {
         var consumerGroupId = requireNonNull(trigger.getMetadata().get("consumerGroupId"));
         var threshold = Integer.parseInt(requireNonNull(trigger.getMetadata().get("threshold")));
         var sla = Duration.parse(Optional.ofNullable(trigger.getMetadata().get("sla")).orElse("PT10M"));
+        var windowSize = Optional.ofNullable(trigger.getMetadata().get("windowSize")).map(Integer::parseInt).orElse(360);
+        var topicRatePercentile = Optional.ofNullable(trigger.getMetadata().get("topicRatePercentile")).map(Double::parseDouble).orElse(99D);
+        var minimumTopicRateMeasurements = Optional.ofNullable(trigger.getMetadata().get("minimumTopicRateMeasurements")).map(Long::parseLong).orElse(3L);
+        var consumerRatePercentile = Optional.ofNullable(trigger.getMetadata().get("consumerRatePercentile")).map(Double::parseDouble).orElse(99D);
+        var minimumConsumerRateMeasurements = Optional.ofNullable(trigger.getMetadata().get("minimumConsumerRateMeasurements")).map(Long::parseLong).orElse(3L);
 
         logger.debug("Requesting kafka metrics for topic={} and consumerGroupId={}", topic, consumerGroupId);
 
         var lagModel = lagModelCache.get(new TopicConsumerGroupId(topic, consumerGroupId));
+
+        // Update these values, in case the definition changed
+        lagModel.setWindowSize(windowSize);
+        lagModel.setConsumerRatePercentile(consumerRatePercentile);
+        lagModel.setMinimumConsumerRateMeasurements(minimumConsumerRateMeasurements);
+        lagModel.setTopicRatePercentile(topicRatePercentile);
+        lagModel.setMinimumTopicRateMeasurements(minimumTopicRateMeasurements);
+
         var kafkaMetadata = KafkaMetadataCache.get(bootstrapServers);
         try {
             var consumerOffsets = kafkaMetadata.getConsumerOffsets(topic, consumerGroupId);
