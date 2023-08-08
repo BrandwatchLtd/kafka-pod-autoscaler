@@ -10,7 +10,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.ServiceLoader;
+import java.util.stream.IntStream;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
 
 import io.fabric8.kubernetes.api.model.EventBuilder;
@@ -39,6 +42,10 @@ import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerstatus.Tri
 @ControllerConfiguration
 public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscaler> {
     static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ISO_DATE_TIME;
+    private static final LoadingCache<Integer, int[]> partitionCountCache = Caffeine.newBuilder()
+        .build(partitionCount -> IntStream.rangeClosed(1, partitionCount)
+            .filter(i -> (partitionCount / (double) i) == Math.floorDiv(partitionCount, i))
+            .toArray());
 
     private final PartitionCountFetcher partitionCountFetcher;
     Clock clock;
@@ -100,11 +107,14 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
             })
             .max().orElse(1);
         var partitionCount = getPartitionCount(kafkaPodAutoscaler);
-        var finalReplicaCount = fitReplicaCount(calculatedReplicaCount, partitionCount.orElse(calculatedReplicaCount));
 
         if (partitionCount.isPresent()) {
             statusLogger.recordPartitionCount(partitionCount.getAsInt());
         }
+        var maxScaleIncrements = kafkaPodAutoscaler.getSpec().getMaxScaleIncrements();
+        var finalReplicaCount = fitReplicaCount(currentReplicaCount, calculatedReplicaCount, partitionCount.orElse(calculatedReplicaCount),
+                                                maxScaleIncrements);
+
         statusLogger.recordCurrentReplicaCount(currentReplicaCount);
         statusLogger.recordCalculatedReplicaCount(calculatedReplicaCount);
         statusLogger.recordFinalReplicaCount(finalReplicaCount);
@@ -200,17 +210,34 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
                          .process(client, scaledResource, autoscaler, trigger, replicaCount);
     }
 
-    private int fitReplicaCount(int idealReplicaCount, int partitionCount) {
+    static int fitReplicaCount(int currentReplicaCount, int idealReplicaCount, int partitionCount, int maxScaleIncrements) {
         if (idealReplicaCount == 0) {
             return 1;
         }
-        for (var i = idealReplicaCount; i <= partitionCount; i++) {
-            if ((partitionCount / (double) i) != Math.floorDiv(partitionCount, i)) {
-                continue;
+        var allowedReplicaCounts = partitionCountCache.get(partitionCount);
+        var currentReplicaCountIndex = findReplicaCountIndex(currentReplicaCount, allowedReplicaCounts);
+        var newReplicaCountIndex = findReplicaCountIndex(idealReplicaCount, allowedReplicaCounts);
+
+        // Ensure we can't move more than maxScaleIncrements
+        if (Math.abs(currentReplicaCountIndex - newReplicaCountIndex) > maxScaleIncrements) {
+            if (currentReplicaCountIndex > newReplicaCountIndex) {
+                newReplicaCountIndex = Math.max(currentReplicaCountIndex - maxScaleIncrements, 0);
+            } else {
+                newReplicaCountIndex = Math.min(currentReplicaCountIndex + maxScaleIncrements, partitionCount);
             }
-            return i;
         }
-        return Math.max(partitionCount, 1);
+
+        return allowedReplicaCounts[newReplicaCountIndex];
+    }
+
+    private static int findReplicaCountIndex(int idealReplicaCount, int[] allowedReplicaCounts) {
+        var i = 0;
+        for (; i < allowedReplicaCounts.length; i++) {
+            if (allowedReplicaCounts[i] >= idealReplicaCount) {
+                return i;
+            }
+        }
+        return i - 1;
     }
 
     void setClock(Clock clock) {

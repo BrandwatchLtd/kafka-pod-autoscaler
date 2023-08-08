@@ -14,10 +14,14 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -64,13 +68,13 @@ public class KafkaPodAutoscalerReconcilerTest {
     public void beforeEach() {
         reconciler = new KafkaPodAutoscalerReconciler(partitionCountFetcher, Clock.fixed(NOW, ZoneOffset.UTC));
 
-        when(mockContext.getClient()).thenReturn(client);
+        lenient().when(mockContext.getClient()).thenReturn(client);
         @SuppressWarnings("unchecked")
         var namespaceOp = (NonNamespaceOperation<Deployment, DeploymentList, RollableScalableResource<Deployment>>)
                 mock(NonNamespaceOperation.class, Answers.RETURNS_SELF);
-        when(client.apps().deployments().inNamespace(NAMESPACE))
+        lenient().when(client.apps().deployments().inNamespace(NAMESPACE))
                 .thenReturn(namespaceOp);
-        when(namespaceOp.withName(DEPLOYMENT_NAME)).thenReturn(deploymentResource);
+        lenient().when(namespaceOp.withName(DEPLOYMENT_NAME)).thenReturn(deploymentResource);
         lenient().when(deploymentResource.get()).thenReturn(deployment);
         lenient().when(deploymentResource.isReady()).thenReturn(true);
 
@@ -78,7 +82,7 @@ public class KafkaPodAutoscalerReconcilerTest {
 
         @SuppressWarnings("unchecked")
         var resourceEvent = (Resource<Event>) mock(Resource.class);
-        when(client.v1().events().resource(any())).thenReturn(resourceEvent);
+        lenient().when(client.v1().events().resource(any())).thenReturn(resourceEvent);
 
         var metadata = new ObjectMeta();
         metadata.setName("kpa");
@@ -400,6 +404,27 @@ public class KafkaPodAutoscalerReconcilerTest {
 
         var metrics = getMetrics();
         assertThat(metrics.isScalable()).isEqualTo(true);
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    public void fitReplicaCount(int currentReplicaCount, int idealReplicaCount, int partitionCount, int maxScaleIncrements,
+                                int expectedResult) {
+        assertThat(KafkaPodAutoscalerReconciler.fitReplicaCount(currentReplicaCount, idealReplicaCount, partitionCount, maxScaleIncrements))
+            .isEqualTo(expectedResult);
+    }
+
+    public static Stream<Arguments> fitReplicaCount() {
+        return Stream.of(
+            // Scaling up
+            Arguments.of(1, 1, 16, 1000, 1),
+            Arguments.of(1, 3, 16, 1000, 4),
+            Arguments.of(4, 200, 16, 1000, 16),
+            Arguments.of(1, 3, 16, 1, 2),
+            // Scaling down
+            Arguments.of(16, 3, 16, 1000, 4),
+            Arguments.of(16, 3, 16, 1, 8)
+        );
     }
 
     private void assertTriggerResults(UpdateControl<KafkaPodAutoscaler> updateControl, List<TriggerResult> expectedResults) {
