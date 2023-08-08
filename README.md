@@ -23,6 +23,7 @@ metadata:
 spec:
   dryRun: false # set true to see what the autoscaler _would_ do
   cooloffSeconds: 300
+  maxScaleIncrements: 1
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment

@@ -78,6 +78,8 @@ spec:
                       type: object
                   type: object
                 type: array
+              maxScaleIncrements:
+                type: integer
             required:
             - scaleTargetRef
             - triggers

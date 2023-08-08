@@ -55,4 +55,9 @@ public class KafkaPodAutoscalerSpec implements KubernetesResource {
     @Required
     @JsonSetter(nulls = Nulls.SKIP)
     private List<TriggerDefinition> triggers = Serialization.unmarshal("[]", List.class);
+    @Getter
+    @Setter
+    @JsonProperty("maxScaleIncrements")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private int maxScaleIncrements = 1;
 }
