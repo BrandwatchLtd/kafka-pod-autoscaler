@@ -8,10 +8,12 @@ import static org.testcontainers.k3s.K3sContainer.RANCHER_WEBHOOK_PORT;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.testcontainers.containers.Network;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -26,10 +28,11 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 
 import com.brandwatch.kafka_pod_autoscaler.testing.FileConsumer;
 
-@Testcontainers
+@Timeout(value = 4, unit = TimeUnit.MINUTES)
+@Testcontainers(parallel = true)
 class DeploymentScaledResourceTest {
     @Container
-    public static K3sContainer k3s = new K3sContainer(DockerImageName.parse("rancher/k3s:v1.23.17-k3s1"))
+    public static K3sContainer k3s = new K3sContainer(DockerImageName.parse("rancher/k3s:v1.24.16-k3s1"))
             .withNetwork(Network.newNetwork())
             .withCopyFileToContainer(
                     MountableFile.forClasspathResource("/k3s-registries.yaml"),

@@ -13,12 +13,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -50,6 +52,7 @@ import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscalerSpec;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
 
 @Slf4j
+@Timeout(value = 4, unit = TimeUnit.MINUTES)
 @Testcontainers(parallel = true)
 class KafkaPodAutoscalerIT {
     private static final String OPERATOR_NAMESPACE = "system-kpa";
@@ -60,7 +63,7 @@ class KafkaPodAutoscalerIT {
     private static final Map<String, Map<String, LogWatch>> watchLogs = new ConcurrentHashMap<>();
 
     @Container
-    public static K3sContainer k3s = new K3sContainer(DockerImageName.parse("rancher/k3s:v1.23.17-k3s1"))
+    public static K3sContainer k3s = new K3sContainer(DockerImageName.parse("rancher/k3s:v1.24.16-k3s1"))
             .withNetwork(Network.newNetwork())
             .withCopyFileToContainer(
                     MountableFile.forClasspathResource("/k3s-registries.yaml"),
@@ -73,7 +76,7 @@ class KafkaPodAutoscalerIT {
             .withExposedPorts(KUBE_SECURE_PORT, RANCHER_WEBHOOK_PORT, 5005)
             .withLogConsumer(new FileConsumer(Path.of("target/k3s.log")));
     @Container
-    public static final GenericContainer<?> registryContainer = new GenericContainer<>(DockerImageName.parse("registry:2.7.1"))
+    public static final GenericContainer<?> registryContainer = new GenericContainer<>(DockerImageName.parse("registry:2.8"))
             .withEnv("REGISTRY_HTTP_SECRET", "secret")
             .withNetwork(k3s.getNetwork())
             .withNetworkAliases("registry")
@@ -86,6 +89,7 @@ class KafkaPodAutoscalerIT {
     private static KubernetesClient client;
 
     @BeforeAll
+    @Timeout(value = 4, unit = TimeUnit.MINUTES)
     static void beforeAll() throws Exception {
         // Use jib to upload the image to the temp registry
         Jib.from(DockerDaemonImage.named(IMAGE_NAME))

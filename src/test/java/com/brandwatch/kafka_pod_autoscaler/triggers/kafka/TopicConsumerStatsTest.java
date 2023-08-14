@@ -15,7 +15,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-public class LagModelTest {
+public class TopicConsumerStatsTest {
     private static final Instant NOW = Instant.parse("2000-01-02T03:04:05.006Z");
     private static final TopicPartition PARTITION_1 = new TopicPartition("topic", 1);
     private static final TopicPartition PARTITION_2 = new TopicPartition("topic", 2);
@@ -28,6 +28,9 @@ public class LagModelTest {
                                  ExpectedResults expectedResults) {
         var clock = new AtomicLong(NOW.toEpochMilli());
         var stats = new TopicConsumerStats(clock::get);
+
+        stats.setMinimumTopicRateMeasurements(0L);
+        stats.setMinimumConsumerRateMeasurements(0L);
 
         for (var call : updateCalls) {
             stats.update(call.replicaCount, call.consumerOffsets, call.topicEndOffsets);
