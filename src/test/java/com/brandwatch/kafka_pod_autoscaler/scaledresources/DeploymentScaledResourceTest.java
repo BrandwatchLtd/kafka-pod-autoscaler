@@ -29,7 +29,7 @@ import com.brandwatch.kafka_pod_autoscaler.testing.FileConsumer;
 @Testcontainers
 class DeploymentScaledResourceTest {
     @Container
-    public static K3sContainer k3s = new K3sContainer(DockerImageName.parse("rancher/k3s:v1.23.17-k3s1"))
+    public static K3sContainer k3s = new K3sContainer(DockerImageName.parse("rancher/k3s:v1.24.16-k3s1"))
             .withNetwork(Network.newNetwork())
             .withCopyFileToContainer(
                     MountableFile.forClasspathResource("/k3s-registries.yaml"),

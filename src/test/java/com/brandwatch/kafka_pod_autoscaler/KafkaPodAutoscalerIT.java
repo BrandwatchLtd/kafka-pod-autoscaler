@@ -60,7 +60,7 @@ class KafkaPodAutoscalerIT {
     private static final Map<String, Map<String, LogWatch>> watchLogs = new ConcurrentHashMap<>();
 
     @Container
-    public static K3sContainer k3s = new K3sContainer(DockerImageName.parse("rancher/k3s:v1.23.17-k3s1"))
+    public static K3sContainer k3s = new K3sContainer(DockerImageName.parse("rancher/k3s:v1.24.16-k3s1"))
             .withNetwork(Network.newNetwork())
             .withCopyFileToContainer(
                     MountableFile.forClasspathResource("/k3s-registries.yaml"),
@@ -73,7 +73,7 @@ class KafkaPodAutoscalerIT {
             .withExposedPorts(KUBE_SECURE_PORT, RANCHER_WEBHOOK_PORT, 5005)
             .withLogConsumer(new FileConsumer(Path.of("target/k3s.log")));
     @Container
-    public static final GenericContainer<?> registryContainer = new GenericContainer<>(DockerImageName.parse("registry:2.7.1"))
+    public static final GenericContainer<?> registryContainer = new GenericContainer<>(DockerImageName.parse("registry:2.8"))
             .withEnv("REGISTRY_HTTP_SECRET", "secret")
             .withNetwork(k3s.getNetwork())
             .withNetworkAliases("registry")
