@@ -13,12 +13,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -50,6 +52,7 @@ import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscalerSpec;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
 
 @Slf4j
+@Timeout(value = 4, unit = TimeUnit.MINUTES)
 @Testcontainers(parallel = true)
 class KafkaPodAutoscalerIT {
     private static final String OPERATOR_NAMESPACE = "system-kpa";
@@ -86,6 +89,7 @@ class KafkaPodAutoscalerIT {
     private static KubernetesClient client;
 
     @BeforeAll
+    @Timeout(value = 4, unit = TimeUnit.MINUTES)
     static void beforeAll() throws Exception {
         // Use jib to upload the image to the temp registry
         Jib.from(DockerDaemonImage.named(IMAGE_NAME))
