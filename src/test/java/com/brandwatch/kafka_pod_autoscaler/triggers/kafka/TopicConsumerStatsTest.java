@@ -29,6 +29,9 @@ public class TopicConsumerStatsTest {
         var clock = new AtomicLong(NOW.toEpochMilli());
         var stats = new TopicConsumerStats(clock::get);
 
+        stats.setMinimumTopicRateMeasurements(0L);
+        stats.setMinimumConsumerRateMeasurements(0L);
+
         for (var call : updateCalls) {
             stats.update(call.replicaCount, call.consumerOffsets, call.topicEndOffsets);
             clock.addAndGet(1_000);

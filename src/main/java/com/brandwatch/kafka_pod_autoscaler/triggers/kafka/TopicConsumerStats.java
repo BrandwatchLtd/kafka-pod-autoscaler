@@ -23,16 +23,16 @@ public class TopicConsumerStats {
     private final SynchronizedDescriptiveStatistics historicalTopicRates = new SynchronizedDescriptiveStatistics();
     @Getter
     @Setter
-    private long minimumConsumerRateMeasurements;
+    private double consumerRatePercentile = 99D;
     @Getter
     @Setter
-    private double consumerRatePercentile;
+    private long minimumConsumerRateMeasurements = 3;
     @Getter
     @Setter
-    private double topicRatePercentile;
+    private double topicRatePercentile = 99D;
     @Getter
     @Setter
-    private long minimumTopicRateMeasurements;
+    private long minimumTopicRateMeasurements = 3;
 
     public TopicConsumerStats() {
         this(System::currentTimeMillis);

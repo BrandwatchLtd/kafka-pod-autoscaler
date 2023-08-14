@@ -92,6 +92,7 @@ public class KafkaPodAutoscalerReconcilerTest {
         scaleTargetRef.setName(DEPLOYMENT_NAME);
         var spec = new KafkaPodAutoscalerSpec();
         spec.setScaleTargetRef(scaleTargetRef);
+        spec.setMaxScaleIncrements(100);
         kpa = new KafkaPodAutoscaler();
         kpa.setMetadata(metadata);
         kpa.setSpec(spec);
