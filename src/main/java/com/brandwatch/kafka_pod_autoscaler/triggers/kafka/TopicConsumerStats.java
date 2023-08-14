@@ -51,12 +51,11 @@ public class TopicConsumerStats {
         this.historicalTopicRates.setWindowSize(360);
     }
 
-    public int getWindowSize() {
-        return this.historicalConsumerRates.getWindowSize();
+    public void setConsumerRateWindowSize(int windowSize) {
+        this.historicalConsumerRates.setWindowSize(windowSize);
     }
 
-    public void setWindowSize(int windowSize) {
-        this.historicalConsumerRates.setWindowSize(windowSize);
+    public void setTopicRateWindowSize(int windowSize) {
         this.historicalTopicRates.setWindowSize(windowSize);
     }
 
