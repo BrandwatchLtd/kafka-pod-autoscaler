@@ -3,11 +3,13 @@ package com.brandwatch.kafka_pod_autoscaler.triggers.kafka;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalDouble;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.apache.kafka.common.TopicPartition;
@@ -31,10 +33,11 @@ public class TopicConsumerStatsTest {
 
         stats.setMinimumTopicRateMeasurements(0L);
         stats.setMinimumConsumerRateMeasurements(0L);
+        stats.setConsumerCommitTimeout(Duration.ofSeconds(10L));
 
         for (var call : updateCalls) {
             stats.update(call.replicaCount, call.consumerOffsets, call.topicEndOffsets);
-            clock.addAndGet(1_000);
+            clock.addAndGet(call.tickBy);
         }
 
         assertThat(stats.getLag(), equalTo(expectedResults.lag()));
@@ -46,8 +49,9 @@ public class TopicConsumerStatsTest {
         return Stream.of(
             Arguments.of(noCalls(), expect(1, 0, OptionalDouble.empty(), OptionalDouble.empty())),
             Arguments.of(oneCallSameOffsets(), expect(1, 0, OptionalDouble.empty(), OptionalDouble.empty())),
-            Arguments.of(unmovingTopic(), expect(1, 0, OptionalDouble.of(0D), OptionalDouble.of(0D))),
-            Arguments.of(stuckConsumer(), expect(1, 8, OptionalDouble.of(0D), OptionalDouble.of(4D))),
+            Arguments.of(manyOfTheSameOffset_withinCommitTimeout(), expect(1, 0, OptionalDouble.empty(), OptionalDouble.of(0D))),
+            Arguments.of(manyOfTheSameOffset_outsideCommitTimeout(), expect(1, 0, OptionalDouble.of(0D), OptionalDouble.of(0D))),
+            Arguments.of(stuckConsumer(), expect(1, 8, OptionalDouble.of(0D), OptionalDouble.of(0.4D))),
             Arguments.of(slowConsumer(), expect(1, 24, OptionalDouble.of(2D), OptionalDouble.of(16D))),
             Arguments.of(keepingUpConsumer(), expect(1, 0L, OptionalDouble.of(8D), OptionalDouble.of(16D))),
             Arguments.of(keepingUpConsumer(), expect(2, 0L, OptionalDouble.of(16D), OptionalDouble.of(16D))),
@@ -65,19 +69,23 @@ public class TopicConsumerStatsTest {
         return List.of(call(2, evenOffsets(0L), evenOffsets(0L)));
     }
 
-    private static List<UpdateCallParameters> unmovingTopic() {
-        return List.of(
-            call(2, evenOffsets(0L), evenOffsets(0L)),
-            call(2, evenOffsets(0L), evenOffsets(0L)),
-            call(2, evenOffsets(0L), evenOffsets(0L))
-        );
+    private static List<UpdateCallParameters> manyOfTheSameOffset_withinCommitTimeout() {
+        return IntStream.range(0, 10)
+            .mapToObj(i -> call(2, evenOffsets(0L), evenOffsets(0L)))
+            .toList();
+    }
+
+    private static List<UpdateCallParameters> manyOfTheSameOffset_outsideCommitTimeout() {
+        return IntStream.range(0, 1_000)
+            .mapToObj(i -> call(2, evenOffsets(0L), evenOffsets(0L), 10_000))
+            .toList();
     }
 
     private static List<UpdateCallParameters> stuckConsumer() {
         return List.of(
-            call(2, evenOffsets(0L), evenOffsets(0L)),
-            call(2, evenOffsets(0L), evenOffsets(1L)),
-            call(2, evenOffsets(0L), evenOffsets(2L))
+            call(2, evenOffsets(0L), evenOffsets(0L), 10_000),
+            call(2, evenOffsets(0L), evenOffsets(1L), 10_000),
+            call(2, evenOffsets(0L), evenOffsets(2L), 10_000)
         );
     }
 
@@ -128,7 +136,14 @@ public class TopicConsumerStatsTest {
     private static UpdateCallParameters call(int replicaCount,
                                              Map<TopicPartition, Long> consumerOffsets,
                                              Map<TopicPartition, Long> topicEndOffsets) {
-        return new UpdateCallParameters(replicaCount, consumerOffsets, topicEndOffsets);
+        return new UpdateCallParameters(replicaCount, consumerOffsets, topicEndOffsets, 1_000);
+    }
+
+    private static UpdateCallParameters call(int replicaCount,
+                                             Map<TopicPartition, Long> consumerOffsets,
+                                             Map<TopicPartition, Long> topicEndOffsets,
+                                             long tickBy) {
+        return new UpdateCallParameters(replicaCount, consumerOffsets, topicEndOffsets, tickBy);
     }
 
     private static ExpectedResults expect(int replicaCount, long lag, OptionalDouble consumerRate, OptionalDouble topicRate) {
@@ -138,7 +153,8 @@ public class TopicConsumerStatsTest {
     public record UpdateCallParameters(
         int replicaCount,
         Map<TopicPartition, Long> consumerOffsets,
-        Map<TopicPartition, Long> topicEndOffsets) {
+        Map<TopicPartition, Long> topicEndOffsets,
+        long tickBy) {
     }
 
     public record ExpectedResults(int replicaCount, long lag, OptionalDouble consumerRate, OptionalDouble topicRate) {

@@ -42,6 +42,7 @@ public class KafkaLagTriggerProcessor implements TriggerProcessor {
         var minimumTopicRateMeasurements = Optional.ofNullable(trigger.getMetadata().get("minimumTopicRateMeasurements")).map(Long::parseLong).orElse(3L);
         var consumerRatePercentile = Optional.ofNullable(trigger.getMetadata().get("consumerRatePercentile")).map(Double::parseDouble).orElse(99D);
         var minimumConsumerRateMeasurements = Optional.ofNullable(trigger.getMetadata().get("minimumConsumerRateMeasurements")).map(Long::parseLong).orElse(3L);
+        var consumerCommitTimeout = Optional.ofNullable(trigger.getMetadata().get("consumerCommitTimeout")).map(Duration::parse).orElseGet(() -> Duration.ofMinutes(1L));
 
         logger.debug("Requesting kafka metrics for topic={} and consumerGroupId={}", topic, consumerGroupId);
 
@@ -53,6 +54,7 @@ public class KafkaLagTriggerProcessor implements TriggerProcessor {
         lagModel.setMinimumConsumerRateMeasurements(minimumConsumerRateMeasurements);
         lagModel.setTopicRatePercentile(topicRatePercentile);
         lagModel.setMinimumTopicRateMeasurements(minimumTopicRateMeasurements);
+        lagModel.setConsumerCommitTimeout(consumerCommitTimeout);
 
         var kafkaMetadata = KafkaMetadataCache.get(bootstrapServers);
         try {
