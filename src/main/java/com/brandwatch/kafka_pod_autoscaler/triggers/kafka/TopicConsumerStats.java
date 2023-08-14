@@ -1,6 +1,8 @@
 package com.brandwatch.kafka_pod_autoscaler.triggers.kafka;
 
+import java.time.Duration;
 import java.util.Map;
+import java.util.Objects;
 import java.util.OptionalDouble;
 import java.util.function.LongSupplier;
 
@@ -10,6 +12,7 @@ import org.apache.kafka.common.TopicPartition;
 import com.google.common.annotations.VisibleForTesting;
 
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 
 public class TopicConsumerStats {
@@ -33,6 +36,9 @@ public class TopicConsumerStats {
     @Getter
     @Setter
     private long minimumTopicRateMeasurements = 3;
+    @Getter
+    @Setter
+    private Duration consumerCommitTimeout = Duration.ofMinutes(1L);
 
     public TopicConsumerStats() {
         this(System::currentTimeMillis);
@@ -61,16 +67,21 @@ public class TopicConsumerStats {
             .sum();
 
         var newConsumerOffsets = new RecordedOffsets(now, consumerOffsets);
-        var newTopicEndOffsets = new RecordedOffsets(now, topicEndOffsets);
-        if (this.consumerOffsets != null) {
-            calculateRate(this.consumerOffsets, newConsumerOffsets)
-                .ifPresent(value -> historicalConsumerRates.addValue(value / (double) replicaCount));
+        if (this.consumerOffsets == null
+                || this.consumerOffsets.haveAllChangedSince(newConsumerOffsets)
+                || this.consumerOffsets.haveTimedout(clock, this.consumerCommitTimeout)) {
+            if (this.consumerOffsets != null) {
+                calculateRate(this.consumerOffsets, newConsumerOffsets)
+                    .ifPresent(value -> historicalConsumerRates.addValue(value / (double) replicaCount));
+            }
+            this.consumerOffsets = newConsumerOffsets;
         }
+
+        var newTopicEndOffsets = new RecordedOffsets(now, topicEndOffsets);
         if (this.topicEndOffsets != null) {
-            calculateRate(this.topicEndOffsets, new RecordedOffsets(now, topicEndOffsets))
+            calculateRate(this.topicEndOffsets, newTopicEndOffsets)
                 .ifPresent(historicalTopicRates::addValue);
         }
-        this.consumerOffsets = newConsumerOffsets;
         this.topicEndOffsets = newTopicEndOffsets;
     }
 
@@ -120,5 +131,13 @@ public class TopicConsumerStats {
     }
 
     record RecordedOffsets(long timestamp, Map<TopicPartition, Long> offsets) {
+        public boolean haveAllChangedSince(@NonNull RecordedOffsets otherOffsets) {
+            return offsets.keySet().stream()
+                .noneMatch(tp -> Objects.equals(otherOffsets.offsets.get(tp), offsets().get(tp)));
+        }
+
+        public boolean haveTimedout(@NonNull LongSupplier clock, @NonNull Duration consumerCommitTimeout) {
+            return (timestamp + consumerCommitTimeout.toMillis()) < clock.getAsLong();
+        }
     }
 }
