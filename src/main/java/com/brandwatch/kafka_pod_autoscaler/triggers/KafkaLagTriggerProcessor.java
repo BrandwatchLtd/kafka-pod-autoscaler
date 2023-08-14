@@ -65,14 +65,14 @@ public class KafkaLagTriggerProcessor implements TriggerProcessor {
 
             var lag = lagModel.getLag();
             var targetRate = lagModel.getTopicRate().orElse(0);
-            var consumerRate = lagModel.estimateConsumerRate(replicaCount).orElse(targetRate);
+            var consumerRate = lagModel.estimateConsumerRate(replicaCount);
             if (lag > threshold) {
                 // We need to catch up, so calculate a target rate that will clear the lag within the SLA
                 var rateRequiredToClearLag = lag / (double) sla.toSeconds();
                 targetRate = targetRate + rateRequiredToClearLag;
             }
             // We need to invert the calculation because we need to scale _up_ to the target rate, not down
-            return TriggerResult.inverted(trigger, consumerRate, targetRate);
+            return TriggerResult.inverted(trigger, consumerRate.orElse(targetRate), targetRate);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
