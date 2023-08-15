@@ -23,7 +23,7 @@ import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.Trigg
 public class KafkaLagTriggerProcessor implements TriggerProcessor {
     private static final LoadingCache<TopicConsumerGroupId, TopicConsumerStats> lagModelCache = Caffeine.newBuilder()
         .expireAfterAccess(Duration.ofMinutes(10))
-        .build(id -> new TopicConsumerStats());
+        .build(id -> new TopicConsumerStats(id.topic, id.consumerGroupId));
 
     @Override
     public String getType() {
@@ -37,9 +37,10 @@ public class KafkaLagTriggerProcessor implements TriggerProcessor {
         var consumerGroupId = requireNonNull(trigger.getMetadata().get("consumerGroupId"));
         var threshold = Integer.parseInt(requireNonNull(trigger.getMetadata().get("threshold")));
         var sla = Duration.parse(Optional.ofNullable(trigger.getMetadata().get("sla")).orElse("PT10M"));
-        var windowSize = Optional.ofNullable(trigger.getMetadata().get("windowSize")).map(Integer::parseInt).orElse(360);
+        var topicRateWindowSize = Optional.ofNullable(trigger.getMetadata().get("topicRateWindowSize")).map(Integer::parseInt).orElse(90);
         var topicRatePercentile = Optional.ofNullable(trigger.getMetadata().get("topicRatePercentile")).map(Double::parseDouble).orElse(99D);
         var minimumTopicRateMeasurements = Optional.ofNullable(trigger.getMetadata().get("minimumTopicRateMeasurements")).map(Long::parseLong).orElse(3L);
+        var consumerWindowSize = Optional.ofNullable(trigger.getMetadata().get("consumerWindowSize")).map(Integer::parseInt).orElse(360);
         var consumerRatePercentile = Optional.ofNullable(trigger.getMetadata().get("consumerRatePercentile")).map(Double::parseDouble).orElse(99D);
         var minimumConsumerRateMeasurements = Optional.ofNullable(trigger.getMetadata().get("minimumConsumerRateMeasurements")).map(Long::parseLong).orElse(3L);
         var consumerCommitTimeout = Optional.ofNullable(trigger.getMetadata().get("consumerCommitTimeout")).map(Duration::parse).orElseGet(() -> Duration.ofMinutes(1L));
@@ -49,11 +50,14 @@ public class KafkaLagTriggerProcessor implements TriggerProcessor {
         var lagModel = lagModelCache.get(new TopicConsumerGroupId(topic, consumerGroupId));
 
         // Update these values, in case the definition changed
-        lagModel.setWindowSize(windowSize);
+        lagModel.setConsumerRateWindowSize(consumerWindowSize);
         lagModel.setConsumerRatePercentile(consumerRatePercentile);
         lagModel.setMinimumConsumerRateMeasurements(minimumConsumerRateMeasurements);
+
+        lagModel.setTopicRateWindowSize(topicRateWindowSize);
         lagModel.setTopicRatePercentile(topicRatePercentile);
         lagModel.setMinimumTopicRateMeasurements(minimumTopicRateMeasurements);
+
         lagModel.setConsumerCommitTimeout(consumerCommitTimeout);
 
         var kafkaMetadata = KafkaMetadataCache.get(bootstrapServers);
