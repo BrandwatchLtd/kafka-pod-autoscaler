@@ -23,7 +23,7 @@ import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.Trigg
 public class KafkaLagTriggerProcessor implements TriggerProcessor {
     private static final LoadingCache<TopicConsumerGroupId, TopicConsumerStats> lagModelCache = Caffeine.newBuilder()
         .expireAfterAccess(Duration.ofMinutes(10))
-        .build(id -> new TopicConsumerStats());
+        .build(id -> new TopicConsumerStats(id.topic, id.consumerGroupId));
 
     @Override
     public String getType() {

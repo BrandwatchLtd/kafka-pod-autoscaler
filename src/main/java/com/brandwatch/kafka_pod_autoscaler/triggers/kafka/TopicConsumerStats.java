@@ -11,11 +11,15 @@ import org.apache.kafka.common.TopicPartition;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import io.micrometer.core.instrument.Metrics;
+import io.micrometer.core.instrument.Tags;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 
 public class TopicConsumerStats {
+    private final String topic;
+    private final String consumerGroupId;
     private final LongSupplier clock;
 
     @Getter
@@ -40,15 +44,30 @@ public class TopicConsumerStats {
     @Setter
     private Duration consumerCommitTimeout = Duration.ofMinutes(1L);
 
-    public TopicConsumerStats() {
-        this(System::currentTimeMillis);
+    public TopicConsumerStats(String topic, String consumerGroupId) {
+        this(topic, consumerGroupId, System::currentTimeMillis);
     }
 
     @VisibleForTesting
-    TopicConsumerStats(LongSupplier clock) {
+    TopicConsumerStats(String topic, String consumerGroupId, LongSupplier clock) {
+        this.topic = topic;
+        this.consumerGroupId = consumerGroupId;
         this.clock = clock;
         this.historicalConsumerRates.setWindowSize(360);
         this.historicalTopicRates.setWindowSize(360);
+
+        var tags = Tags.of("topic", topic, "consumerGroupId", consumerGroupId);
+        Metrics.gauge("kpa_topic_consumer_stats_consumer_rate_n", tags, historicalConsumerRates, SynchronizedDescriptiveStatistics::getN);
+        Metrics.gauge("kpa_topic_consumer_stats_consumer_rate", tags.and("percentile", "50"), historicalConsumerRates, s -> s.getPercentile(50D));
+        Metrics.gauge("kpa_topic_consumer_stats_consumer_rate", tags.and("percentile", "90"), historicalConsumerRates, s -> s.getPercentile(90D));
+        Metrics.gauge("kpa_topic_consumer_stats_consumer_rate", tags.and("percentile", "95"), historicalConsumerRates, s -> s.getPercentile(95D));
+        Metrics.gauge("kpa_topic_consumer_stats_consumer_rate", tags.and("percentile", "99"), historicalConsumerRates, s -> s.getPercentile(99D));
+
+        Metrics.gauge("kpa_topic_consumer_stats_topic_rate_n", tags, historicalTopicRates, SynchronizedDescriptiveStatistics::getN);
+        Metrics.gauge("kpa_topic_consumer_stats_topic_rate", tags.and("percentile", "50"), historicalTopicRates, s -> s.getPercentile(50D));
+        Metrics.gauge("kpa_topic_consumer_stats_topic_rate", tags.and("percentile", "90"), historicalTopicRates, s -> s.getPercentile(90D));
+        Metrics.gauge("kpa_topic_consumer_stats_topic_rate", tags.and("percentile", "95"), historicalTopicRates, s -> s.getPercentile(95D));
+        Metrics.gauge("kpa_topic_consumer_stats_topic_rate", tags.and("percentile", "99"), historicalTopicRates, s -> s.getPercentile(99D));
     }
 
     public void setConsumerRateWindowSize(int windowSize) {
