@@ -21,9 +21,9 @@ import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.Trigg
 @Slf4j
 @AutoService(TriggerProcessor.class)
 public class KafkaLagTriggerProcessor implements TriggerProcessor {
-    private static final LoadingCache<TopicConsumerGroupId, TopicConsumerStats> lagModelCache = Caffeine.newBuilder()
+    private static final LoadingCache<KpaId, TopicConsumerStats> lagModelCache = Caffeine.newBuilder()
         .expireAfterAccess(Duration.ofMinutes(10))
-        .build(id -> new TopicConsumerStats(id.topic, id.consumerGroupId));
+        .build(id -> new TopicConsumerStats(id.namespace, id.name));
 
     @Override
     public String getType() {
@@ -32,6 +32,8 @@ public class KafkaLagTriggerProcessor implements TriggerProcessor {
 
     @Override
     public TriggerResult process(KubernetesClient client, ScaledResource resource, KafkaPodAutoscaler autoscaler, TriggerDefinition trigger, int replicaCount) {
+        var kpaName = autoscaler.getMetadata().getName();
+        var kpaNamespace = autoscaler.getMetadata().getNamespace();
         var topic = autoscaler.getSpec().getTopicName();
         var bootstrapServers = autoscaler.getSpec().getBootstrapServers();
         var consumerGroupId = requireNonNull(trigger.getMetadata().get("consumerGroupId"));
@@ -47,7 +49,7 @@ public class KafkaLagTriggerProcessor implements TriggerProcessor {
 
         logger.debug("Requesting kafka metrics for topic={} and consumerGroupId={}", topic, consumerGroupId);
 
-        var lagModel = lagModelCache.get(new TopicConsumerGroupId(topic, consumerGroupId));
+        var lagModel = lagModelCache.get(new KpaId(kpaNamespace, kpaName));
 
         // Update these values, in case the definition changed
         lagModel.setConsumerRateWindowSize(consumerWindowSize);
@@ -86,6 +88,6 @@ public class KafkaLagTriggerProcessor implements TriggerProcessor {
         }
     }
 
-    private record TopicConsumerGroupId(String topic, String consumerGroupId) {
+    private record KpaId(String namespace, String name) {
     }
 }

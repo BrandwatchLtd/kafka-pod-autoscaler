@@ -29,7 +29,7 @@ public class TopicConsumerStatsTest {
     public void variousScenarios(List<UpdateCallParameters> updateCalls,
                                  ExpectedResults expectedResults) {
         var clock = new AtomicLong(NOW.toEpochMilli());
-        var stats = new TopicConsumerStats("topic", "test", clock::get);
+        var stats = new TopicConsumerStats("namespace", "test", clock::get);
 
         stats.setMinimumTopicRateMeasurements(0L);
         stats.setMinimumConsumerRateMeasurements(0L);

@@ -18,8 +18,6 @@ import lombok.NonNull;
 import lombok.Setter;
 
 public class TopicConsumerStats {
-    private final String topic;
-    private final String consumerGroupId;
     private final LongSupplier clock;
 
     @Getter
@@ -49,14 +47,12 @@ public class TopicConsumerStats {
     }
 
     @VisibleForTesting
-    TopicConsumerStats(String topic, String consumerGroupId, LongSupplier clock) {
-        this.topic = topic;
-        this.consumerGroupId = consumerGroupId;
+    TopicConsumerStats(String namespace, String name, LongSupplier clock) {
         this.clock = clock;
         this.historicalConsumerRates.setWindowSize(360);
         this.historicalTopicRates.setWindowSize(360);
 
-        var tags = Tags.of("topic", topic, "consumerGroupId", consumerGroupId);
+        var tags = Tags.of("kpa-namespace", namespace, "kpa-name", name);
         Metrics.gauge("kpa_topic_consumer_stats_consumer_rate_n", tags, historicalConsumerRates, SynchronizedDescriptiveStatistics::getN);
         Metrics.gauge("kpa_topic_consumer_stats_consumer_rate", tags.and("percentile", "50"), historicalConsumerRates, s -> s.getPercentile(50D));
         Metrics.gauge("kpa_topic_consumer_stats_consumer_rate", tags.and("percentile", "90"), historicalConsumerRates, s -> s.getPercentile(90D));
