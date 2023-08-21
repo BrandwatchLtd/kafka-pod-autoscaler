@@ -16,7 +16,9 @@ import io.micrometer.core.instrument.Tags;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class TopicConsumerStats {
     private final LongSupplier clock;
 
@@ -32,6 +34,9 @@ public class TopicConsumerStats {
     @Getter
     @Setter
     private long minimumConsumerRateMeasurements = 3;
+    @Getter
+    @Setter
+    private Double consumerMessagesPerSec = null;
     @Getter
     @Setter
     private double topicRatePercentile = 99D;
@@ -113,6 +118,9 @@ public class TopicConsumerStats {
     }
 
     public OptionalDouble estimateConsumerRate(int replicaCount) {
+        if (consumerMessagesPerSec != null) {
+            return OptionalDouble.of(consumerMessagesPerSec * replicaCount);
+        }
         if (historicalConsumerRates.getN() < minimumConsumerRateMeasurements) {
             return OptionalDouble.empty();
         }

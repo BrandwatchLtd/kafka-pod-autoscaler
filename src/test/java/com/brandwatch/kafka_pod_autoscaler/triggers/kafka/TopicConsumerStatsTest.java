@@ -26,8 +26,8 @@ public class TopicConsumerStatsTest {
 
     @ParameterizedTest
     @MethodSource
-    public void variousScenarios(List<UpdateCallParameters> updateCalls,
-                                 ExpectedResults expectedResults) {
+    public void variousScenarios_dynamicConsumerRate(List<UpdateCallParameters> updateCalls,
+                                                     ExpectedResults expectedResults) {
         var clock = new AtomicLong(NOW.toEpochMilli());
         var stats = new TopicConsumerStats("namespace", "test", clock::get);
 
@@ -45,7 +45,7 @@ public class TopicConsumerStatsTest {
         assertThat(stats.getTopicRate(), equalTo(expectedResults.topicRate()));
     }
 
-    public static Stream<Arguments> variousScenarios() {
+    public static Stream<Arguments> variousScenarios_dynamicConsumerRate() {
         return Stream.of(
             Arguments.of(noCalls(), expect(1, 0, OptionalDouble.empty(), OptionalDouble.empty())),
             Arguments.of(oneCallSameOffsets(), expect(1, 0, OptionalDouble.empty(), OptionalDouble.empty())),
@@ -58,6 +58,44 @@ public class TopicConsumerStatsTest {
             Arguments.of(catchingUpConsumer(), expect(1, 0, OptionalDouble.of(6D), OptionalDouble.of(4D))),
             Arguments.of(catchingUpConsumer(), expect(2, 0, OptionalDouble.of(12D), OptionalDouble.of(4D))),
             Arguments.of(scalingCatchingUpConsumer(), expect(2, 0, OptionalDouble.of(6D), OptionalDouble.of(8D)))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    public void variousScenarios_constantConsumerRate(List<UpdateCallParameters> updateCalls,
+                                                     ExpectedResults expectedResults) {
+        var clock = new AtomicLong(NOW.toEpochMilli());
+        var stats = new TopicConsumerStats("namespace", "test", clock::get);
+
+        stats.setMinimumTopicRateMeasurements(0L);
+        stats.setMinimumConsumerRateMeasurements(0L);
+        stats.setConsumerCommitTimeout(Duration.ofSeconds(10L));
+        stats.setConsumerMessagesPerSec(4D);
+
+        for (var call : updateCalls) {
+            stats.update(call.replicaCount, call.consumerOffsets, call.topicEndOffsets);
+            clock.addAndGet(call.tickBy);
+        }
+
+        assertThat(stats.getLag(), equalTo(expectedResults.lag()));
+        assertThat(stats.estimateConsumerRate(expectedResults.replicaCount()), equalTo(expectedResults.consumerRate()));
+        assertThat(stats.getTopicRate(), equalTo(expectedResults.topicRate()));
+    }
+
+    public static Stream<Arguments> variousScenarios_constantConsumerRate() {
+        return Stream.of(
+            Arguments.of(noCalls(), expect(1, 0, OptionalDouble.of(4D), OptionalDouble.empty())),
+            Arguments.of(oneCallSameOffsets(), expect(1, 0, OptionalDouble.of(4D), OptionalDouble.empty())),
+            Arguments.of(manyOfTheSameOffset_withinCommitTimeout(), expect(1, 0, OptionalDouble.of(4D), OptionalDouble.of(0D))),
+            Arguments.of(manyOfTheSameOffset_outsideCommitTimeout(), expect(1, 0, OptionalDouble.of(4D), OptionalDouble.of(0D))),
+            Arguments.of(stuckConsumer(), expect(1, 8, OptionalDouble.of(4D), OptionalDouble.of(0.4D))),
+            Arguments.of(slowConsumer(), expect(1, 24, OptionalDouble.of(4D), OptionalDouble.of(16D))),
+            Arguments.of(keepingUpConsumer(), expect(1, 0L, OptionalDouble.of(4D), OptionalDouble.of(16D))),
+            Arguments.of(keepingUpConsumer(), expect(2, 0L, OptionalDouble.of(8D), OptionalDouble.of(16D))),
+            Arguments.of(catchingUpConsumer(), expect(1, 0, OptionalDouble.of(4D), OptionalDouble.of(4D))),
+            Arguments.of(catchingUpConsumer(), expect(2, 0, OptionalDouble.of(8D), OptionalDouble.of(4D))),
+            Arguments.of(scalingCatchingUpConsumer(), expect(2, 0, OptionalDouble.of(8D), OptionalDouble.of(8D)))
         );
     }
 
