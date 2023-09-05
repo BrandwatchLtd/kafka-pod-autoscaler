@@ -27,8 +27,11 @@ spec:
       name: Replicas
       priority: 0
       type: integer
-    - description: The date and time that this message was added
-      jsonPath: .status.lastScale
+    - jsonPath: .status.lastNotReady
+      name: Last Not Ready
+      priority: 0
+      type: string
+    - jsonPath: .status.lastScale
       name: Last Scale
       priority: 0
       type: string
@@ -98,8 +101,12 @@ spec:
                 type: integer
               finalReplicaCount:
                 type: integer
+              lastNotReady:
+                description: The date and time that the object was last seen as not
+                  ready
+                type: string
               lastScale:
-                description: The date and time that this message was added
+                description: The date and time that the last scale happened
                 type: string
               message:
                 type: string
