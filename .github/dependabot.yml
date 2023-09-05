@@ -5,11 +5,28 @@
 
 version: 2
 updates:
-  - package-ecosystem: "maven" # See documentation for possible values
-    directory: "/" # Location of package manifests
-    schedule:
-      interval: "weekly"
-    commit-message:
-      prefix: fix
-      prefix-development: chore
-      include: scope
+- package-ecosystem: maven
+  directory: "/"
+  schedule:
+    interval: weekly
+  groups:
+    test-dependencies:
+      patterns:
+        - "junit-*"
+        - "mockito-*"
+        - "hamcrest-*"
+        - "testcontainers-*"
+    maven-plugins:
+      patterns:
+        - "maven-*-plugin"
+        - "*-maven-plugin"
+  commit-message:
+    prefix: fix
+    prefix-development: chore
+    include: scope
+
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+    # Check for updates to GitHub Actions every week
+    interval: "weekly"
