@@ -23,7 +23,10 @@ metadata:
 spec:
   dryRun: false # set true to see what the autoscaler _would_ do
   cooloffSeconds: 300
-  maxScaleIncrements: 1
+  maxScaleIncrements: 1 # how many increments to scale by, increment of 1 will allow scaling from 1->2, 2->4, 4->8 
+                        #2 will allow 1->4 but not 1->8 
+  minReplicas: 1        # optional
+  maxReplicas: 16       # optional: partition count will be used if missing 
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment

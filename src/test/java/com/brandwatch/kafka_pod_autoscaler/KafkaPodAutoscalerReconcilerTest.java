@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -409,22 +410,31 @@ public class KafkaPodAutoscalerReconcilerTest {
 
     @ParameterizedTest
     @MethodSource
-    public void fitReplicaCount(int currentReplicaCount, int idealReplicaCount, int partitionCount, int maxScaleIncrements,
+    public void fitReplicaCount(int currentReplicaCount, int idealReplicaCount, OptionalInt partitionCount,
+                                Integer minReplicas, Integer maxReplicas, int maxScaleIncrements,
                                 int expectedResult) {
-        assertThat(KafkaPodAutoscalerReconciler.fitReplicaCount(currentReplicaCount, idealReplicaCount, partitionCount, maxScaleIncrements))
+        var spec = mock(KafkaPodAutoscalerSpec.class);
+        when(spec.getMinReplicas()).thenReturn(minReplicas);
+        when(spec.getMaxReplicas()).thenReturn(maxReplicas);
+        when(spec.getMaxScaleIncrements()).thenReturn(maxScaleIncrements);
+        assertThat(KafkaPodAutoscalerReconciler.fitReplicaCount(currentReplicaCount, idealReplicaCount, partitionCount, spec))
             .isEqualTo(expectedResult);
     }
 
     public static Stream<Arguments> fitReplicaCount() {
         return Stream.of(
             // Scaling up
-            Arguments.of(1, 1, 16, 1000, 1),
-            Arguments.of(1, 3, 16, 1000, 4),
-            Arguments.of(4, 200, 16, 1000, 16),
-            Arguments.of(1, 3, 16, 1, 2),
+            Arguments.of(1, 1, OptionalInt.of(16), null, null, 1000, 1),
+            Arguments.of(1, 3, OptionalInt.of(16), null, null, 1000, 4),
+            Arguments.of(4, 200, OptionalInt.of(16), null, null, 1000, 16),
+            Arguments.of(4, 200, OptionalInt.of(16), null, 8, 1000, 8),
+            Arguments.of(1, 3, OptionalInt.of(16), null, null, 1, 2),
+            Arguments.of(1, 3, OptionalInt.empty(), null, null, 1, 3),
             // Scaling down
-            Arguments.of(16, 3, 16, 1000, 4),
-            Arguments.of(16, 3, 16, 1, 8)
+            Arguments.of(16, 3, OptionalInt.of(16), null, null, 1000, 4),
+            Arguments.of(16, 3, OptionalInt.of(16), 8, null, 1000, 8),
+            Arguments.of(16, 3, OptionalInt.of(16), null, null, 1, 8),
+            Arguments.of(16, 3, OptionalInt.empty(), null, null, 1, 8)
         );
     }
 

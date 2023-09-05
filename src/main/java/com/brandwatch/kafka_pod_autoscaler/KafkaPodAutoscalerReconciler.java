@@ -33,6 +33,7 @@ import com.brandwatch.kafka_pod_autoscaler.metrics.ScalerMetrics;
 import com.brandwatch.kafka_pod_autoscaler.scaledresources.GenericScaledResourceFactory;
 import com.brandwatch.kafka_pod_autoscaler.triggers.TriggerProcessor;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscaler;
+import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscalerSpec;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.KafkaPodAutoscalerStatus;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.ScaleTargetRef;
 import com.brandwatch.kafka_pod_autoscaler.v1alpha1.kafkapodautoscalerspec.TriggerDefinition;
@@ -106,14 +107,13 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
                 return replicas;
             })
             .max().orElse(1);
-        var partitionCount = getPartitionCount(kafkaPodAutoscaler);
 
+        var partitionCount = getPartitionCount(kafkaPodAutoscaler);
         if (partitionCount.isPresent()) {
             statusLogger.recordPartitionCount(partitionCount.getAsInt());
         }
-        var maxScaleIncrements = kafkaPodAutoscaler.getSpec().getMaxScaleIncrements();
-        var finalReplicaCount = fitReplicaCount(currentReplicaCount, calculatedReplicaCount, partitionCount.orElse(calculatedReplicaCount),
-                                                maxScaleIncrements);
+        var finalReplicaCount = fitReplicaCount(currentReplicaCount, calculatedReplicaCount, partitionCount,
+                                                kafkaPodAutoscaler.getSpec());
 
         statusLogger.recordCurrentReplicaCount(currentReplicaCount);
         statusLogger.recordCalculatedReplicaCount(calculatedReplicaCount);
@@ -210,11 +210,24 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
                          .process(client, scaledResource, autoscaler, trigger, replicaCount);
     }
 
-    static int fitReplicaCount(int currentReplicaCount, int idealReplicaCount, int partitionCount, int maxScaleIncrements) {
-        if (idealReplicaCount == 0) {
-            return 1;
+    static int fitReplicaCount(int currentReplicaCount, int idealReplicaCount, OptionalInt partitionCount, KafkaPodAutoscalerSpec spec) {
+        int minReplicas = Optional.ofNullable(spec.getMinReplicas()).orElse(1);
+        int maxReplicas = Optional.ofNullable(spec.getMaxReplicas()).orElse(partitionCount.orElse(Math.max(currentReplicaCount, idealReplicaCount)));
+        if (minReplicas < 1) {
+            throw new IllegalArgumentException("minReplicas cannot be less than 1: " + minReplicas);
         }
-        var allowedReplicaCounts = partitionCountCache.get(partitionCount);
+        if (partitionCount.isPresent() && maxReplicas > partitionCount.getAsInt()) {
+            throw new IllegalArgumentException("maxReplicas cannot be greater than the number of partitions on the topic: "
+                                                   + minReplicas + " (partitions=" + partitionCount + ")");
+        }
+        if (idealReplicaCount == 0) {
+            return Math.max(currentReplicaCount, minReplicas);
+        }
+        idealReplicaCount = Math.max(idealReplicaCount, minReplicas);
+        idealReplicaCount = Math.min(idealReplicaCount, maxReplicas);
+
+        var maxScaleIncrements = spec.getMaxScaleIncrements();
+        var allowedReplicaCounts = partitionCountCache.get(partitionCount.orElse(maxReplicas));
         var currentReplicaCountIndex = findReplicaCountIndex(currentReplicaCount, allowedReplicaCounts);
         var newReplicaCountIndex = findReplicaCountIndex(idealReplicaCount, allowedReplicaCounts);
 
@@ -223,7 +236,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
             if (currentReplicaCountIndex > newReplicaCountIndex) {
                 newReplicaCountIndex = Math.max(currentReplicaCountIndex - maxScaleIncrements, 0);
             } else {
-                newReplicaCountIndex = Math.min(currentReplicaCountIndex + maxScaleIncrements, partitionCount);
+                newReplicaCountIndex = Math.min(currentReplicaCountIndex + maxScaleIncrements, partitionCount.orElse(maxReplicas));
             }
         }
 
