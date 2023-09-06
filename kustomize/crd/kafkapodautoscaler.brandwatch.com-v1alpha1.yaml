@@ -78,6 +78,10 @@ spec:
                       type: object
                   type: object
                 type: array
+              minReplicas:
+                type: integer
+              maxReplicas:
+                type: integer
               maxScaleIncrements:
                 type: integer
             required:
