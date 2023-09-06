@@ -86,6 +86,7 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
 
         if (!resource.isReady()) {
             statusLogger.setScaleable(false);
+            statusLogger.recordNotReady();
             statusLogger.log(targetKind + " is not ready. Skipping scale");
             return UpdateControl.patchStatus(kafkaPodAutoscaler)
                 .rescheduleAfter(Duration.ofSeconds(10));
@@ -119,10 +120,14 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         statusLogger.recordCalculatedReplicaCount(calculatedReplicaCount);
         statusLogger.recordFinalReplicaCount(finalReplicaCount);
 
-        if (recentlyScaled(kafkaPodAutoscaler, statusLogger)) {
+        var scaledRecently = recentlyScaled(kafkaPodAutoscaler, statusLogger);
+        var notReadyRecently = recentlyNotReady(kafkaPodAutoscaler, statusLogger);
+        if (scaledRecently || notReadyRecently) {
             if (currentReplicaCount == finalReplicaCount) {
                 // Reset to the correct message here
                 statusLogger.log(targetKind + " is correctly scaled to " + finalReplicaCount + " replicas");
+            } else if (notReadyRecently) {
+                statusLogger.log(targetKind + " has been not-ready recently. Skipping scale");
             } else {
                 statusLogger.log(targetKind + " has been scaled recently. Skipping scale");
             }
@@ -156,10 +161,12 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
 
     private boolean recentlyScaled(KafkaPodAutoscaler kafkaPodAutoscaler, StatusLogger statusLogger) {
         var rescaleWindow = Instant.now(clock).minus(Duration.ofSeconds(kafkaPodAutoscaler.getSpec().getCooloffSeconds()));
-        if (statusLogger.getLastScale() != null && statusLogger.getLastScale().isAfter(rescaleWindow)) {
-            return true;
-        }
-        return false;
+        return statusLogger.getLastScale() != null && statusLogger.getLastScale().isAfter(rescaleWindow);
+    }
+
+    private boolean recentlyNotReady(KafkaPodAutoscaler kafkaPodAutoscaler, StatusLogger statusLogger) {
+        var rescaleWindow = Instant.now(clock).minus(Duration.ofSeconds(kafkaPodAutoscaler.getSpec().getCooloffSeconds()));
+        return statusLogger.getLastNotReady() != null && statusLogger.getLastNotReady().isAfter(rescaleWindow);
     }
 
     private ScaledResource getScaledResource(KubernetesClient client, String namespace, ScaleTargetRef scaleTargetRef) {
@@ -263,7 +270,9 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
         private final Clock clock;
         private final String name;
         @Getter
-        private final Instant lastScale;
+        private Instant lastNotReady;
+        @Getter
+        private Instant lastScale;
         private final KafkaPodAutoscalerStatus status;
         private final ScalerMetrics scalerMetrics;
 
@@ -272,11 +281,16 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
             this.kafkaPodAutoscaler = kafkaPodAutoscaler;
             this.clock = clock;
             this.name = kafkaPodAutoscaler.getMetadata().getName();
+            this.lastNotReady = Optional.ofNullable(kafkaPodAutoscaler.getStatus())
+                .map(KafkaPodAutoscalerStatus::getLastNotReady)
+                .map(DATE_TIME_FORMATTER::parse)
+                .map(Instant::from)
+                .orElse(null);
             this.lastScale = Optional.ofNullable(kafkaPodAutoscaler.getStatus())
-                    .map(KafkaPodAutoscalerStatus::getLastScale)
-                    .map(DATE_TIME_FORMATTER::parse)
-                    .map(Instant::from)
-                    .orElse(null);
+                .map(KafkaPodAutoscalerStatus::getLastScale)
+                .map(DATE_TIME_FORMATTER::parse)
+                .map(Instant::from)
+                .orElse(null);
             this.scalerMetrics = ScalerMetrics.getOrCreate(kafkaPodAutoscaler);
             this.status = Optional.ofNullable(kafkaPodAutoscaler.getStatus())
                     .orElseGet(KafkaPodAutoscalerStatus::new);
@@ -360,7 +374,14 @@ public class KafkaPodAutoscalerReconciler implements Reconciler<KafkaPodAutoscal
             status.setDryRunReplicas(dryRunReplicas);
         }
 
+        public void recordNotReady() {
+            lastNotReady = Instant.now(clock);
+            scalerMetrics.setNotReady(lastNotReady.toEpochMilli());
+            status.setLastNotReady(DATE_TIME_FORMATTER.format(lastNotReady.atZone(ZoneOffset.UTC)));
+        }
+
         public void recordLastScale() {
+            lastScale = Instant.now(clock);
             scalerMetrics.setLastScale(Instant.now(clock).toEpochMilli());
             status.setLastScale(DATE_TIME_FORMATTER.format(Instant.now(clock).atZone(ZoneOffset.UTC)));
         }

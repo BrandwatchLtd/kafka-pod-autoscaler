@@ -44,13 +44,17 @@ public class KafkaPodAutoscalerStatus implements KubernetesResource {
     @JsonProperty("finalReplicaCount")
     @JsonSetter(nulls = Nulls.SKIP)
     private Integer finalReplicaCount;
-    /**
-     * The date and time that this message was added
-     */
+    @Getter
+    @Setter
+    @JsonProperty("lastNotReady")
+    @JsonPropertyDescription("The date and time that the object was last seen as not ready")
+    @JsonSetter(nulls = Nulls.SKIP)
+    @PrinterColumn(name = "Last Not Ready")
+    private String lastNotReady;
     @Getter
     @Setter
     @JsonProperty("lastScale")
-    @JsonPropertyDescription("The date and time that this message was added")
+    @JsonPropertyDescription("The date and time that the last scale happened")
     @JsonSetter(nulls = Nulls.SKIP)
     @PrinterColumn(name = "Last Scale")
     private String lastScale;
