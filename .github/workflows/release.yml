@@ -22,7 +22,7 @@ jobs:
       packages: write
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         ref: ${{ github.event.workflow_run.head_sha }}
 
@@ -68,7 +68,7 @@ jobs:
         writeToFile: false
 
     - name: Create Release
-      uses: ncipollo/release-action@v1.12.0
+      uses: ncipollo/release-action@v1.13.0
       with:
         allowUpdates: true
         draft: false
