@@ -41,7 +41,7 @@
       <dependency>
         <groupId>io.javaoperatorsdk</groupId>
         <artifactId>operator-framework-bom</artifactId>
-        <version>4.4.4</version>
+        <version>4.8.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
